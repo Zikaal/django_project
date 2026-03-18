@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Список пользователей{% endblock %}
+
+{% block content %}
+    <h1>Пользователи системы</h1>
+
+    {% if users %}
+        <ul>
+            {% for user_obj in users %}
+                <li>
+                    <strong>{{ user_obj.get_full_name|default:user_obj.username }}</strong>
+                    — отдел: {{ user_obj.profile.department|default:"—" }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Пользователей пока нет.</p>
+    {% endif %}
+{% endblock %}

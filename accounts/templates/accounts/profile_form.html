@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Мой профиль{% endblock %}
+
+{% block content %}
+    <h1>Мой профиль</h1>
+
+    <p><strong>Username:</strong> {{ request.user.username }}</p>
+    <p><strong>Отдел:</strong> {{ request.user.profile.department|default:"—" }}</p>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Сохранить</button>
+    </form>
+{% endblock %}
