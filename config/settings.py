@@ -120,3 +120,6 @@ STATIC_URL = 'static/'
 
 LOGIN_REDIRECT_URL = "profile"
 LOGIN_URL = "login"
+
+LANGUAGE_CODE = "ru"
+USE_I18N = True

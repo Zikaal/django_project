@@ -2,57 +2,95 @@ from decimal import Decimal
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-class Well(models.Model):  # Создаем модель Well для хранения информации о скважинах
-    name = models.CharField("Название скважины", max_length=100, unique=True)  # Поле для названия скважины, максимум 100 символов, значение должно быть уникальным
 
-    def __str__(self):  # Метод для удобного строкового отображения объекта
-        return self.name  # Возвращаем название скважины
-
-
-class DailyProduction(models.Model):  # Создаем модель DailyProduction для хранения суточных рапортов по добыче
-    well = models.ForeignKey(  # Создаем внешний ключ на модель Well
-        Well,  # Указываем, что связь идет с моделью Well
-        on_delete=models.CASCADE,  # Если скважина удаляется, все связанные суточные рапорты тоже удаляются
-        related_name="daily_productions",  # Позволяет получать все рапорты скважины через well.daily_productions
-        verbose_name="Скважина",  # Человекочитаемое название поля для форм и админки
-    )
-    date = models.DateField("Дата")  # Поле даты суточного рапорта
-    work_time = models.DecimalField(  # Поле времени работы скважины
-        "Время работы, часов",  # Человекочитаемое название поля
-        max_digits=4,  # Максимальное количество цифр всего
-        decimal_places=2,  # Количество цифр после запятой
-        validators=[MinValueValidator(0), MaxValueValidator(24)],  # Значение должно быть от 0 до 24
-    )
-    liquid_debit = models.DecimalField(  # Поле дебита жидкости
-        "Дебит жидкости, м³/сут",  # Человекочитаемое название поля
-        max_digits=10,  # Максимальное количество цифр всего
-        decimal_places=2,  # Количество цифр после запятой
-    )
-    water_cut = models.DecimalField(  # Поле обводненности
-        "Обводненность, %",  # Человекочитаемое название поля
-        max_digits=5,  # Максимальное количество цифр всего
-        decimal_places=2,  # Количество цифр после запятой
-        validators=[MinValueValidator(0), MaxValueValidator(100)],  # Значение должно быть от 0 до 100
-    )
-    oil_density = models.DecimalField(  # Поле плотности нефти
-        "Плотность нефти, т/м³",  # Человекочитаемое название поля
-        max_digits=5,  # Максимальное количество цифр всего
-        decimal_places=3,  # Количество цифр после запятой
+class Well(models.Model):
+    name = models.CharField(
+        "Название скважины",
+        max_length=100,
+        unique=True,
+        error_messages={
+            "unique": "Скважина с таким названием уже существует.",
+            "blank": "Введите название скважины.",
+        },
     )
 
-    class Meta:  # Внутренний класс для дополнительных настроек модели
-        constraints = [  # Список ограничений на уровне базы данных
-            models.UniqueConstraint(  # Создаем ограничение уникальности
-                fields=["well", "date"],  # Комбинация полей well и date не должна повторяться
-                name="unique_daily_production_per_well_date",  # Имя ограничения в базе данных
+    def __str__(self):
+        return self.name
+
+
+class DailyProduction(models.Model):
+    well = models.ForeignKey(
+        Well,
+        on_delete=models.CASCADE,
+        related_name="daily_productions",
+        verbose_name="Скважина",
+    )
+    date = models.DateField(
+        "Дата",
+        error_messages={
+            "blank": "Укажите дату.",
+            "invalid": "Введите корректную дату.",
+        },
+    )
+    work_time = models.DecimalField(
+        "Время работы, часов",
+        max_digits=4,
+        decimal_places=2,
+        validators=[
+            MinValueValidator(0, message="Время работы не может быть меньше 0 часов."),
+            MaxValueValidator(24, message="Время работы не может быть больше 24 часов."),
+        ],
+        error_messages={
+            "blank": "Укажите время работы.",
+            "invalid": "Введите корректное число часов.",
+        },
+    )
+    liquid_debit = models.DecimalField(
+        "Дебит жидкости, м³/сут",
+        max_digits=10,
+        decimal_places=2,
+        error_messages={
+            "blank": "Укажите дебит жидкости.",
+            "invalid": "Введите корректное значение дебита жидкости.",
+        },
+    )
+    water_cut = models.DecimalField(
+        "Обводненность, %",
+        max_digits=5,
+        decimal_places=2,
+        validators=[
+            MinValueValidator(0, message="Обводненность не может быть меньше 0%."),
+            MaxValueValidator(100, message="Обводненность не может быть больше 100%."),
+        ],
+        error_messages={
+            "blank": "Укажите обводненность.",
+            "invalid": "Введите корректное значение обводненности.",
+        },
+    )
+    oil_density = models.DecimalField(
+        "Плотность нефти, т/м³",
+        max_digits=5,
+        decimal_places=3,
+        error_messages={
+            "blank": "Укажите плотность нефти.",
+            "invalid": "Введите корректное значение плотности нефти.",
+        },
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["well", "date"],
+                name="unique_daily_production_per_well_date",
+                violation_error_message="Для этой скважины уже есть запись на указанную дату.",
             )
         ]
-        verbose_name = "Суточный рапорт"  # Название модели в единственном числе для админки
-        verbose_name_plural = "Суточные рапорты"  # Название модели во множественном числе для админки
+        verbose_name = "Суточный рапорт"
+        verbose_name_plural = "Суточные рапорты"
 
-    def __str__(self):  # Метод для удобного строкового отображения объекта
-        return f"{self.well} - {self.date}"  # Возвращаем строку в формате "скважина - дата"
-    
-    @property  # Делаем метод вычисляемым свойством, чтобы обращаться к нему как к полю
+    def __str__(self):
+        return f"{self.well} - {self.date}"
+
+    @property
     def calculated_oil(self):
-        return self.liquid_debit * (Decimal("1") - self.water_cut / Decimal("100")) * self.oil_density  # Вычисляем расчетный дебит нефти по формуле
+        return self.liquid_debit * (Decimal("1") - self.water_cut / Decimal("100")) * self.oil_density
