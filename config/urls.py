@@ -19,12 +19,13 @@ from django.urls import path, include
 
 from accounts.views import ProfileUpdateView, RegisterView, UserListView
 
-urlpatterns = [
-    path('admin/', admin.site.urls),
+urlpatterns = [  # Список всех URL-маршрутов проекта
+    path("admin/", admin.site.urls),  # Маршрут для встроенной админ-панели Django
 
-    path("accounts/register/", RegisterView.as_view(), name="register"),
-    path("accounts/profile/", ProfileUpdateView.as_view(), name="profile"),
-    path("accounts/users/", UserListView.as_view(), name="user_list"),
+    path("accounts/register/", RegisterView.as_view(), name="register"),  # Маршрут страницы регистрации нового пользователя
+    path("accounts/profile/", ProfileUpdateView.as_view(), name="profile"),  # Маршрут страницы профиля текущего пользователя
+    path("accounts/users/", UserListView.as_view(), name="user_list"),  # Маршрут страницы со списком всех пользователей
 
-    path("accounts/", include("django.contrib.auth.urls")),
+    path("accounts/", include("django.contrib.auth.urls")),  # Подключаем встроенные маршруты Django для входа, выхода и работы с паролями
+    path("productions/", include("productions.urls")),  # Подключаем маршруты приложения productions для работы со скважинами и суточными рапортами
 ]

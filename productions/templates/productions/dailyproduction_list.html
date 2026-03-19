@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Суточные рапорты{% endblock %}
+
+{% block content %}
+    <h1>Суточные рапорты</h1>
+
+    <p>
+        <a href="{% url 'dailyproduction_create' %}">Добавить рапорт</a>
+    </p>
+
+    {% if reports %}
+        <table border="1" cellpadding="8" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Скважина</th>
+                    <th>Дата</th>
+                    <th>Часы</th>
+                    <th>Жидкость (м³)</th>
+                    <th>Вода (%)</th>
+                    <th>Плотность (т/м³)</th>
+                    <th>Расчетная нефть (т)</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in reports %}
+                    <tr>
+                        <td>{{ report.well }}</td>
+                        <td>{{ report.date }}</td>
+                        <td>{{ report.work_time }}</td>
+                        <td>{{ report.liquid_debit }}</td>
+                        <td>{{ report.water_cut }}</td>
+                        <td>{{ report.oil_density }}</td>
+                        <td>{{ report.calculated_oil }}</td>
+                        <td>
+                            <a href="{% url 'dailyproduction_update' report.pk %}">Редактировать</a>
+                            
+                            <a href="{% url 'dailyproduction_delete' report.pk %}">Удалить</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Суточных рапортов пока нет.</p>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Суточный Рапорт{% endblock %}
+
+{% block content %}
+    <h1>
+        {% if form.instance.pk %}
+            Редактирование суточного рапорта
+        {% else %}
+            Создание суточного рапорта
+        {% endif %}
+    </h1>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Сохранить</button>
+    </form>
+{% endblock %}

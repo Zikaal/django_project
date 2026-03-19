@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Удаление рапорта{% endblock %}
+
+{% block content %}
+    <h1>Удаление суточного рапорта</h1>
+
+    <p>Вы уверены, что хотите удалить запись?</p>
+
+    <ul>
+        <li><strong>Скважина:</strong> {{ object.well }}</li>
+        <li><strong>Дата:</strong> {{ object.date }}</li>
+    </ul>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit">Да, удалить</button>
+        <a href="{% url 'dailyproduction_list' %}">Отмена</a>
+    </form>
+{% endblock %}
