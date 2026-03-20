@@ -10,6 +10,8 @@
             <a href="{% url 'profile' %}">Мой профиль</a>
             <a href="{% url 'user_list' %}">Пользователи</a>
             <a href="{% url 'dailyproduction_list' %}">Суточные рапорты</a>
+            <a href="{% url 'company_list' %}">Компании</a>
+            <a href="/admin/">Админка</a>
 
             <form action="{% url 'logout' %}" method="post" style="display:inline;">
                 {% csrf_token %}

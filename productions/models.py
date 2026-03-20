@@ -1,6 +1,7 @@
 from decimal import Decimal
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from companies.models import OilCompany
 
 
 class Well(models.Model):
@@ -13,6 +14,55 @@ class Well(models.Model):
             "blank": "Введите название скважины.",
         },
     )
+    oil_company = models.ForeignKey(
+        OilCompany,
+        on_delete=models.CASCADE,
+        related_name="wells",
+        verbose_name="Нефтяная компания",
+        null=True,
+        blank=True,
+        error_messages={
+            "blank": "Выберите нефтяную компанию.",
+        },
+    )
+    type = models.CharField(
+        "Тип",
+        max_length=100,
+        blank=True,
+        default="",
+        error_messages={
+            "blank": "Укажите тип скважины.",
+        },
+    )
+    max_drilling_depth = models.PositiveIntegerField(
+        "Максимальная глубина бурения, м",
+        null = True,
+        blank= True,
+        error_messages={
+            "invalid": "Введите корректную максимальную глубину бурения.",
+        },
+    )
+    latitude = models.DecimalField(
+        "Широта",
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        error_messages={
+            "invalid": "Введите корректное значение широты.",
+        },
+    )
+    longitude = models.DecimalField(
+        "Долгота",
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        error_messages={
+            "invalid": "Введите корректное значение долготы.",
+        },
+    )
+
 
     def __str__(self):
         return self.name

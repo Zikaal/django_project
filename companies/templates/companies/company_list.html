@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Нефтяные компании{% endblock %}
+
+{% block content %}
+    <h1>Нефтяные компании</h1>
+
+    {% if companies %}
+        {% for company in companies %}
+            <div style="margin-bottom: 30px;">
+                <h2>{{ company.name }}</h2>
+                <p><strong>Регион:</strong> {{ company.region }}</p>
+
+                <h3>Сотрудники</h3>
+                <ul>
+                    {% for profile in company.employees.all %}
+                        <li>{{ profile.user.username }}</li>
+                    {% empty %}
+                        <li>Сотрудников пока нет.</li>
+                    {% endfor %}
+                </ul>
+
+                <h3>Скважины</h3>
+                <ul>
+                    {% for well in company.wells.all %}
+                        <li>
+                            <strong>{{ well.name }}</strong>
+                            — тип: {{ well.type|default:"—" }}
+                            — глубина: {{ well.max_drilling_depth|default:"—" }} м
+                            — координаты: {{ well.latitude|default:"—" }}, {{ well.longitude|default:"—" }}
+                        </li>
+                    {% empty %}
+                        <li>Скважин пока нет.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <hr>
+        {% endfor %}
+    {% else %}
+        <p>Компании пока нет.</p>
+    {% endif %}
+{% endblock %}

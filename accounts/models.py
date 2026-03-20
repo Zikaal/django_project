@@ -1,11 +1,20 @@
-from django.db import models # Импортируем модуль models из Django для создания моделей базы данных
-from django.conf import settings  # Импортируем settings, чтобы использовать модель пользователя из настроек проекта
+from django.db import models 
+from django.conf import settings  
+from companies.models import OilCompany
 
 class Profile(models.Model): # Создаем модель Profile, которая будет хранить дополнительную информацию о пользователе
     user = models.OneToOneField(  # Поле связи один-к-одному: одному пользователю соответствует один профиль
         settings.AUTH_USER_MODEL,  # Берем модель пользователя из настроек Django
         on_delete=models.CASCADE,  # Если пользователь удаляется, связанный профиль тоже удаляется
         related_name="profile",  # Позволяет обращаться к профилю через user.profile
+    )
+    oil_company = models.ForeignKey(
+        OilCompany,
+        on_delete=models.CASCADE,
+        related_name="employees",
+        verbose_name="Нефтяная компания",
+        null=True,
+        blank=True,
     )
     bio = models.TextField("О себе", blank=True, default="")
     department = models.CharField("Отдел", max_length=150, blank=True, default="")
