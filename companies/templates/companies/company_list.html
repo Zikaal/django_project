@@ -5,38 +5,74 @@
 {% block content %}
     <h1>Нефтяные компании</h1>
 
+    <p><strong>Всего компаний:</strong> {{ total_count }}</p>
+
+    <form method="get" style="margin-bottom: 20px;">
+        <label for="sort">Сортировка:</label>
+        <select name="sort" id="sort">
+            <option value="name" {% if sort == "name" %}selected{% endif %}>По названию (А-Я)</option>
+            <option value="-name" {% if sort == "-name" %}selected{% endif %}>По названию (Я-А)</option>
+            <option value="region" {% if sort == "region" %}selected{% endif %}>По региону</option>
+        </select>
+        <button type="submit">Применить</button>
+    </form>
+
     {% if companies %}
-        {% for company in companies %}
-            <div style="margin-bottom: 30px;">
-                <h2>{{ company.name }}</h2>
-                <p><strong>Регион:</strong> {{ company.region }}</p>
+        <table border="1" cellpadding="8" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Название компании</th>
+                    <th>Регион</th>
+                    <th>Количество сотрудников</th>
+                    <th>Количество скважин</th>
+                    <th>Сотрудники</th>
+                    <th>Скважины</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for company in companies %}
+                    <tr>
+                        <td>{{ company.name }}</td>
+                        <td>{{ company.region }}</td>
+                        <td>{{ company.employees.count }}</td>
+                        <td>{{ company.wells.count }}</td>
+                        <td>
+                            {% for profile in company.employees.all %}
+                                {{ profile.user.username }}{% if not forloop.last %}, {% endif %}
+                            {% empty %}
+                                —
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for well in company.wells.all %}
+                                {{ well.name }} ({{ well.max_drilling_depth|default:"—" }} м){% if not forloop.last %}, {% endif %}
+                            {% empty %}
+                                —
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
 
-                <h3>Сотрудники</h3>
-                <ul>
-                    {% for profile in company.employees.all %}
-                        <li>{{ profile.user.username }}</li>
-                    {% empty %}
-                        <li>Сотрудников пока нет.</li>
-                    {% endfor %}
-                </ul>
+        {% if is_paginated %}
+            <div style="margin-top: 20px;">
+                {% if page_obj.has_previous %}
+                    <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}">Назад</a>
+                {% endif %}
 
-                <h3>Скважины</h3>
-                <ul>
-                    {% for well in company.wells.all %}
-                        <li>
-                            <strong>{{ well.name }}</strong>
-                            — тип: {{ well.type|default:"—" }}
-                            — глубина: {{ well.max_drilling_depth|default:"—" }} м
-                            — координаты: {{ well.latitude|default:"—" }}, {{ well.longitude|default:"—" }}
-                        </li>
-                    {% empty %}
-                        <li>Скважин пока нет.</li>
-                    {% endfor %}
-                </ul>
+                <span>
+                    Показаны записи
+                    {{ page_obj.start_index }}–{{ page_obj.end_index }}
+                    из {{ page_obj.paginator.count }}
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}">Вперед</a>
+                {% endif %}
             </div>
-            <hr>
-        {% endfor %}
+        {% endif %}
     {% else %}
-        <p>Компании пока нет.</p>
+        <p>Компаний пока нет.</p>
     {% endif %}
 {% endblock %}

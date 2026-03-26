@@ -1,34 +1,106 @@
-from django.contrib.auth import get_user_model  # Импортируем функцию для получения текущей модели пользователя
-from django.contrib.auth.forms import UserCreationForm  # Импортируем встроенную форму Django для регистрации пользователя
-from django.contrib.auth.mixins import LoginRequiredMixin  # Импортируем миксин для ограничения доступа только авторизованным пользователям
-from django.urls import reverse_lazy  # Импортируем reverse_lazy для ленивого получения URL по имени маршрута
-from django.views.generic import ListView  # Импортируем generic view для вывода списка объектов
-from django.views.generic.edit import CreateView, UpdateView  # Импортируем generic views для создания и редактирования объектов
+from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse_lazy
+from django.views.generic import ListView
+from django.views.generic.edit import CreateView, UpdateView
 
-from .forms import ProfileForm  # Импортируем форму ProfileForm из текущего приложения
-from .models import Profile  # Импортируем модель Profile из текущего приложения
+from .forms import ProfileForm
+from .models import Profile
 
-User = get_user_model()  # Получаем текущую модель пользователя, используемую в проекте
+# Получаем модель пользователя (на случай, если используется кастомная модель User)
+User = get_user_model()
 
-class RegisterView(CreateView):  # Создаем view для регистрации нового пользователя
-    model = User  # Указываем модель, с которой работает это представление
-    form_class = UserCreationForm  # Указываем форму, которая будет использоваться для регистрации
-    template_name = "registration/register.html"  # Указываем HTML-шаблон страницы регистрации
-    success_url = reverse_lazy("login")  # После успешной регистрации перенаправляем пользователя на страницу входа
 
-class UserListView(LoginRequiredMixin, ListView):  # Создаем view для отображения списка пользователей, доступное только авторизованным
-    model = User  # Указываем модель, объекты которой будут выводиться в списке
-    template_name = "accounts/user_list.html"  # Указываем HTML-шаблон страницы со списком пользователей
-    context_object_name = "users"  # Задаем имя переменной, через которую список будет доступен в шаблоне
+class RegisterView(CreateView):
+    """
+    Представление для регистрации нового пользователя.
 
-    def get_queryset(self):  # Переопределяем метод получения набора объектов для списка
-        return User.objects.select_related("profile").order_by("username")  # Получаем всех пользователей вместе с их профилями и сортируем по username
+    Использует стандартную форму Django UserCreationForm.
+    После успешной регистрации перенаправляет пользователя на страницу входа.
+    """
 
-class ProfileUpdateView(LoginRequiredMixin, UpdateView):  # Создаем view для редактирования профиля текущего пользователя
-    model = Profile  # Указываем модель, которую будем редактировать
-    form_class = ProfileForm  # Указываем форму для редактирования профиля
-    template_name = "accounts/profile_form.html"  # Указываем HTML-шаблон страницы профиля
-    success_url = reverse_lazy("profile")  # После успешного сохранения остаемся на странице профиля
+    model = User
+    form_class = UserCreationForm
+    template_name = "registration/register.html"
+    success_url = reverse_lazy("login")
 
-    def get_object(self, queryset=None):  # Переопределяем метод, который возвращает редактируемый объект
-        return self.request.user.profile  # Возвращаем профиль текущего авторизованного пользователя
+
+class UserListView(LoginRequiredMixin, ListView):
+    """
+    Представление для отображения списка всех пользователей системы.
+
+    Доступно только авторизованным пользователям.
+    Поддерживает пагинацию, сортировку и оптимизацию запросов к связанным данным.
+    """
+
+    model = User
+    template_name = "accounts/user_list.html"
+    context_object_name = "users"   # имя переменной в шаблоне
+    paginate_by = 20                # количество пользователей на странице
+
+    def get_queryset(self):
+        """
+        Переопределяем queryset для:
+        1. Оптимизации запросов через select_related (загружаем Profile и OilCompany заранее)
+        2. Применения сортировки по GET-параметру 'sort'
+        """
+        sort = self.request.GET.get("sort", "username")
+
+        # Оптимизация: загружаем связанные объекты за один запрос
+        queryset = User.objects.select_related("profile", "profile__oil_company")
+
+        # Применяем сортировку
+        if sort == "-username":
+            queryset = queryset.order_by("-username")
+        elif sort == "company":
+            queryset = queryset.order_by("profile__oil_company__name", "username")
+        else:
+            # Сортировка по умолчанию — по имени пользователя
+            queryset = queryset.order_by("username")
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        """
+        Добавляем в контекст шаблона дополнительные данные:
+        - Текущий выбранный тип сортировки
+        - Общее количество пользователей в системе
+        - Строку GET-параметров без 'page' (для корректной пагинации при сортировке)
+        """
+        context = super().get_context_data(**kwargs)
+
+        context["sort"] = self.request.GET.get("sort", "username")
+        context["total_count"] = User.objects.count()
+
+        # Сохраняем все GET-параметры кроме 'page'
+        query_params = self.request.GET.copy()
+        query_params.pop("page", None)
+        context["query_string"] = query_params.urlencode()
+
+        return context
+
+
+class ProfileUpdateView(LoginRequiredMixin, UpdateView):
+    """
+    Представление для редактирования профиля текущего пользователя.
+
+    Важные особенности:
+    - Пользователь может редактировать только свой собственный профиль
+    - Метод get_object переопределён, чтобы всегда возвращать профиль текущего пользователя
+    - После успешного обновления перенаправляет на страницу профиля
+    """
+
+    model = Profile
+    form_class = ProfileForm
+    template_name = "accounts/profile_form.html"
+    success_url = reverse_lazy("profile")
+
+    def get_object(self, queryset=None):
+        """
+        Возвращает профиль текущего авторизованного пользователя.
+
+        Переопределяем стандартное поведение, чтобы пользователь не мог
+        редактировать профиль другого пользователя по pk в URL.
+        """
+        return self.request.user.profile

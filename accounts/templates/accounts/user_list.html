@@ -5,15 +5,61 @@
 {% block content %}
     <h1>Пользователи системы</h1>
 
+    <p><strong>Всего пользователей:</strong> {{ total_count }}</p>
+
+    <form method="get" style="margin-bottom: 20px;">
+        <label for="sort">Сортировка:</label>
+        <select name="sort" id="sort">
+            <option value="username" {% if sort == "username" %}selected{% endif %}>По username (А-Я)</option>
+            <option value="-username" {% if sort == "-username" %}selected{% endif %}>По username (Я-А)</option>
+            <option value="company" {% if sort == "company" %}selected{% endif %}>По компании</option>
+        </select>
+        <button type="submit">Применить</button>
+    </form>
+
     {% if users %}
-        <ul>
-            {% for user_obj in users %}
-                <li>
-                    <strong>{{ user_obj.get_full_name|default:user_obj.username }}</strong>
-                    — отдел: {{ user_obj.profile.department|default:"—" }}
-                </li>
-            {% endfor %}
-        </ul>
+        <table border="1" cellpadding="8" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Имя</th>
+                    <th>Фамилия</th>
+                    <th>Компания</th>
+                    <th>Отдел</th>
+                    <th>Телефон</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user_obj in users %}
+                    <tr>
+                        <td>{{ user_obj.username }}</td>
+                        <td>{{ user_obj.first_name|default:"—" }}</td>
+                        <td>{{ user_obj.last_name|default:"—" }}</td>
+                        <td>{{ user_obj.profile.oil_company.name|default:"—" }}</td>
+                        <td>{{ user_obj.profile.department|default:"—" }}</td>
+                        <td>{{ user_obj.profile.phone_number|default:"—" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if is_paginated %}
+            <div style="margin-top: 20px;">
+                {% if page_obj.has_previous %}
+                    <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}">Назад</a>
+                {% endif %}
+
+                <span>
+                    Показаны записи
+                    {{ page_obj.start_index }}–{{ page_obj.end_index }}
+                    из {{ page_obj.paginator.count }}
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}">Вперед</a>
+                {% endif %}
+            </div>
+        {% endif %}
     {% else %}
         <p>Пользователей пока нет.</p>
     {% endif %}

@@ -5,6 +5,13 @@ from companies.models import OilCompany
 
 
 class Well(models.Model):
+    """
+    Модель скважины (Well).
+
+    Хранит основную информацию о нефтяной скважине, включая её местоположение,
+    принадлежность к компании и технические характеристики.
+    """
+
     name = models.CharField(
         "Название скважины",
         max_length=100,
@@ -19,8 +26,6 @@ class Well(models.Model):
         on_delete=models.CASCADE,
         related_name="wells",
         verbose_name="Нефтяная компания",
-        null=True,
-        blank=True,
         error_messages={
             "blank": "Выберите нефтяную компанию.",
         },
@@ -28,16 +33,12 @@ class Well(models.Model):
     type = models.CharField(
         "Тип",
         max_length=100,
-        blank=True,
-        default="",
         error_messages={
             "blank": "Укажите тип скважины.",
         },
     )
     max_drilling_depth = models.PositiveIntegerField(
         "Максимальная глубина бурения, м",
-        null = True,
-        blank= True,
         error_messages={
             "invalid": "Введите корректную максимальную глубину бурения.",
         },
@@ -46,8 +47,6 @@ class Well(models.Model):
         "Широта",
         max_digits=9,
         decimal_places=6,
-        null=True,
-        blank=True,
         error_messages={
             "invalid": "Введите корректное значение широты.",
         },
@@ -56,19 +55,24 @@ class Well(models.Model):
         "Долгота",
         max_digits=9,
         decimal_places=6,
-        null=True,
-        blank=True,
         error_messages={
             "invalid": "Введите корректное значение долготы.",
         },
     )
 
-
     def __str__(self):
+        """Строковое представление скважины — возвращает её название."""
         return self.name
 
 
 class DailyProduction(models.Model):
+    """
+    Модель суточного рапорта по добыче (DailyProduction).
+
+    Хранит ежедневные показатели добычи по каждой скважине.
+    Обеспечивает уникальность записи для комбинации "скважина + дата".
+    """
+
     well = models.ForeignKey(
         Well,
         on_delete=models.CASCADE,
@@ -128,6 +132,11 @@ class DailyProduction(models.Model):
     )
 
     class Meta:
+        """
+        Метаданные модели:
+        - Уникальное ограничение: одна запись на скважину в сутки
+        - Человеко-читаемые названия в админке и формах
+        """
         constraints = [
             models.UniqueConstraint(
                 fields=["well", "date"],
@@ -137,10 +146,22 @@ class DailyProduction(models.Model):
         ]
         verbose_name = "Суточный рапорт"
         verbose_name_plural = "Суточные рапорты"
+        # Можно добавить ordering = ['-date'] при необходимости
 
     def __str__(self):
+        """Строковое представление суточного рапорта."""
         return f"{self.well} - {self.date}"
 
     @property
     def calculated_oil(self):
+        """
+        Расчётное количество добытой нефти за сутки (в тоннах).
+
+        Формула:
+            Объём нефти (м³) = Дебит жидкости × (1 - Обводнённость/100)
+            Масса нефти (т)   = Объём нефти × Плотность нефти
+
+        Возвращает:
+            Decimal — масса добытой нефти в тоннах.
+        """
         return self.liquid_debit * (Decimal("1") - self.water_cut / Decimal("100")) * self.oil_density

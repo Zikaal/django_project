@@ -28,5 +28,5 @@ urlpatterns = [  # Список всех URL-маршрутов проекта
 
     path("accounts/", include("django.contrib.auth.urls")),  # Подключаем встроенные маршруты Django для входа, выхода и работы с паролями
     path("productions/", include("productions.urls")),  # Подключаем маршруты приложения productions для работы со скважинами и суточными рапортами
-    path("companies/", include("companies.urls")),
+    path("companies/", include("companies.urls")),  # Подключаем маршруты приложения companies
 ]

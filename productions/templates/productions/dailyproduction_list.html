@@ -5,14 +5,55 @@
 {% block content %}
     <h1>Суточные рапорты</h1>
 
+    <p><strong>Всего записей:</strong> {{ total_count }}</p>
+
     <p>
         <a href="{% url 'dailyproduction_create' %}">Добавить рапорт</a>
     </p>
+
+    <form method="get" style="margin-bottom: 20px;">
+        <label for="company">Компания:</label>
+        <select name="company" id="company">
+            <option value="">Все</option>
+            {% for company in companies %}
+                <option value="{{ company.id }}" {% if selected_company == company.id|stringformat:"s" %}selected{% endif %}>
+                    {{ company.name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label for="well">Скважина:</label>
+        <select name="well" id="well">
+            <option value="">Все</option>
+            {% for well in wells %}
+                <option value="{{ well.id }}" {% if selected_well == well.id|stringformat:"s" %}selected{% endif %}>
+                    {{ well.name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label for="date_from">Дата с:</label>
+        <input type="date" name="date_from" id="date_from" value="{{ date_from }}">
+
+        <label for="date_to">Дата по:</label>
+        <input type="date" name="date_to" id="date_to" value="{{ date_to }}">
+
+        <label for="sort">Сортировка:</label>
+        <select name="sort" id="sort">
+            <option value="-date" {% if sort == "-date" %}selected{% endif %}>Сначала новые</option>
+            <option value="date" {% if sort == "date" %}selected{% endif %}>Сначала старые</option>
+            <option value="company" {% if sort == "company" %}selected{% endif %}>По компании</option>
+            <option value="well" {% if sort == "well" %}selected{% endif %}>По скважине</option>
+        </select>
+
+        <button type="submit">Применить</button>
+    </form>
 
     {% if reports %}
         <table border="1" cellpadding="8" cellspacing="0">
             <thead>
                 <tr>
+                    <th>Компания</th>
                     <th>Скважина</th>
                     <th>Дата</th>
                     <th>Часы</th>
@@ -26,7 +67,8 @@
             <tbody>
                 {% for report in reports %}
                     <tr>
-                        <td>{{ report.well }}</td>
+                        <td>{{ report.well.oil_company.name|default:"—" }}</td>
+                        <td>{{ report.well.name }}</td>
                         <td>{{ report.date }}</td>
                         <td>{{ report.work_time }}</td>
                         <td>{{ report.liquid_debit }}</td>
@@ -35,13 +77,31 @@
                         <td>{{ report.calculated_oil }}</td>
                         <td>
                             <a href="{% url 'dailyproduction_update' report.pk %}">Редактировать</a>
-                            
+                            |
                             <a href="{% url 'dailyproduction_delete' report.pk %}">Удалить</a>
                         </td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
+
+        {% if is_paginated %}
+            <div style="margin-top: 20px;">
+                {% if page_obj.has_previous %}
+                    <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}">Назад</a>
+                {% endif %}
+
+                <span>
+                    Показаны записи
+                    {{ page_obj.start_index }}–{{ page_obj.end_index }}
+                    из {{ page_obj.paginator.count }}
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}">Вперед</a>
+                {% endif %}
+            </div>
+        {% endif %}
     {% else %}
         <p>Суточных рапортов пока нет.</p>
     {% endif %}
