@@ -1,14 +1,14 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-from django.views.generic import ListView
-from django.views.generic.edit import CreateView, UpdateView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 
-from .forms import ProfileForm
+from companies.models import OilCompany
+from .forms import UserCreateForm, UserUpdateForm, ProfileForm
 from .models import Profile
 
-# Получаем модель пользователя (на случай, если используется кастомная модель User)
 User = get_user_model()
 
 
@@ -16,7 +16,7 @@ class RegisterView(CreateView):
     """
     Представление для регистрации нового пользователя.
 
-    Использует стандартную форму Django UserCreationForm.
+    Использует стандартную форму Django `UserCreationForm`.
     После успешной регистрации перенаправляет пользователя на страницу входа.
     """
 
@@ -31,24 +31,29 @@ class UserListView(LoginRequiredMixin, ListView):
     Представление для отображения списка всех пользователей системы.
 
     Доступно только авторизованным пользователям.
-    Поддерживает пагинацию, сортировку и оптимизацию запросов к связанным данным.
+    Поддерживает фильтрацию по компании, сортировку и пагинацию.
     """
 
     model = User
     template_name = "accounts/user_list.html"
-    context_object_name = "users"   # имя переменной в шаблоне
-    paginate_by = 20                # количество пользователей на странице
+    context_object_name = "users"
+    paginate_by = 20
 
     def get_queryset(self):
         """
         Переопределяем queryset для:
-        1. Оптимизации запросов через select_related (загружаем Profile и OilCompany заранее)
-        2. Применения сортировки по GET-параметру 'sort'
+        1. Оптимизации запросов через select_related
+        2. Фильтрации по нефтяной компании (GET-параметр "company")
+        3. Сортировки по GET-параметру "sort"
         """
-        sort = self.request.GET.get("sort", "username")
-
-        # Оптимизация: загружаем связанные объекты за один запрос
         queryset = User.objects.select_related("profile", "profile__oil_company")
+
+        sort = self.request.GET.get("sort", "username")
+        company = self.request.GET.get("company", "")
+
+        # Фильтрация по компании
+        if company:
+            queryset = queryset.filter(profile__oil_company_id=company)
 
         # Применяем сортировку
         if sort == "-username":
@@ -63,17 +68,19 @@ class UserListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         """
-        Добавляем в контекст шаблона дополнительные данные:
-        - Текущий выбранный тип сортировки
-        - Общее количество пользователей в системе
-        - Строку GET-параметров без 'page' (для корректной пагинации при сортировке)
+        Добавляем в контекст шаблона данные для фильтров и пагинации:
+        - Список всех компаний для фильтра
+        - Текущие значения сортировки и фильтра
+        - Общее количество пользователей после фильтрации
+        - Строку GET-параметров без 'page'
         """
         context = super().get_context_data(**kwargs)
 
+        context["companies"] = OilCompany.objects.order_by("name")
         context["sort"] = self.request.GET.get("sort", "username")
-        context["total_count"] = User.objects.count()
+        context["selected_company"] = self.request.GET.get("company", "")
+        context["total_count"] = self.get_queryset().count()
 
-        # Сохраняем все GET-параметры кроме 'page'
         query_params = self.request.GET.copy()
         query_params.pop("page", None)
         context["query_string"] = query_params.urlencode()
@@ -81,14 +88,80 @@ class UserListView(LoginRequiredMixin, ListView):
         return context
 
 
+class UserCreateView(LoginRequiredMixin, CreateView):
+    """
+    Представление для создания нового пользователя администратором.
+    Использует кастомную форму `UserCreateForm`.
+    После успешного создания перенаправляет на список пользователей.
+    """
+
+    model = User
+    form_class = UserCreateForm
+    template_name = "accounts/user_form.html"
+    success_url = reverse_lazy("user_list")
+
+
+def user_update_view(request, pk):
+    """
+    Функциональное представление для обновления пользователя и его профиля.
+
+    Особенности:
+    - Редактирует сразу две модели: User и Profile
+    - Использует две отдельные формы (UserUpdateForm + ProfileForm)
+    - При первом редактировании профиля автоматически создаёт запись Profile
+
+    Args:
+        request: HTTP-запрос
+        pk: первичный ключ пользователя
+
+    Returns:
+        HttpResponse с формой или редирект на список пользователей после сохранения.
+    """
+    user = get_object_or_404(User, pk=pk)
+    # Получаем или создаём профиль пользователя
+    profile, _ = Profile.objects.get_or_create(user=user)
+
+    if request.method == "POST":
+        user_form = UserUpdateForm(request.POST, instance=user)
+        profile_form = ProfileForm(request.POST, instance=profile)
+
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            return redirect("user_list")
+    else:
+        user_form = UserUpdateForm(instance=user)
+        profile_form = ProfileForm(instance=profile)
+
+    return render(
+        request,
+        "accounts/user_form.html",
+        {
+            "user_form": user_form,
+            "profile_form": profile_form,
+            "edited_user": user,        # передаём для отображения информации в шаблоне
+        },
+    )
+
+
+class UserDeleteView(LoginRequiredMixin, DeleteView):
+    """
+    Представление для удаления пользователя.
+    Использует стандартный шаблон подтверждения удаления.
+    После удаления перенаправляет на список пользователей.
+    """
+
+    model = User
+    template_name = "accounts/user_confirm_delete.html"
+    success_url = reverse_lazy("user_list")
+
+
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     """
-    Представление для редактирования профиля текущего пользователя.
+    Представление для редактирования собственного профиля текущим пользователем.
 
-    Важные особенности:
-    - Пользователь может редактировать только свой собственный профиль
-    - Метод get_object переопределён, чтобы всегда возвращать профиль текущего пользователя
-    - После успешного обновления перенаправляет на страницу профиля
+    Важно: пользователь может редактировать только свой профиль.
+    Метод get_object переопределён для безопасности.
     """
 
     model = Profile
@@ -99,8 +172,6 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     def get_object(self, queryset=None):
         """
         Возвращает профиль текущего авторизованного пользователя.
-
-        Переопределяем стандартное поведение, чтобы пользователь не мог
-        редактировать профиль другого пользователя по pk в URL.
+        Защищает от попыток редактирования чужого профиля.
         """
         return self.request.user.profile

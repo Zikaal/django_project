@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Пользователь{% endblock %}
+
+{% block content %}
+    <h1>
+        {% if edited_user %}
+            Редактирование пользователя {{ edited_user.username }}
+        {% else %}
+            Создание пользователя
+        {% endif %}
+    </h1>
+
+    <form method="post">
+        {% csrf_token %}
+
+        {% if user_form %}
+            <h2>Данные пользователя</h2>
+            {{ user_form.as_p }}
+
+            <h2>Данные профиля</h2>
+            {{ profile_form.as_p }}
+        {% else %}
+            {{ form.as_p }}
+        {% endif %}
+
+        <button type="submit">Сохранить</button>
+    </form>
+{% endblock %}

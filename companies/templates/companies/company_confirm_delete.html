@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Удаление компании{% endblock %}
+
+{% block content %}
+    <h1>Удаление компании</h1>
+    <p>Вы уверены, что хотите удалить компанию "{{ object.name }}"?</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit">Удалить</button>
+        <a href="{% url 'company_list' %}">Отмена</a>
+    </form>
+{% endblock %}

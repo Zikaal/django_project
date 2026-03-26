@@ -1,5 +1,5 @@
 from django import forms
-from .models import DailyProduction
+from .models import DailyProduction, Well
 
 
 class DailyProductionForm(forms.ModelForm):
@@ -93,3 +93,29 @@ class DailyProductionForm(forms.ModelForm):
                 )
 
         return cleaned_data
+
+
+class WellForm(forms.ModelForm):
+    """
+    Форма для создания и редактирования скважины (Well).
+
+    Используется в представлениях WellCreateView и WellUpdateView.
+    """
+
+    class Meta:
+        """
+        Метаданные формы ModelForm для модели Well.
+        
+        Определяет:
+        - Связанную модель
+        - Поля, которые будут отображаться в форме
+        """
+        model = Well
+        fields = [
+            "name",
+            "oil_company",
+            "type",
+            "max_drilling_depth",
+            "latitude",
+            "longitude",
+        ]

@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Список пользователей{% endblock %}
+{% block title %}Скважины{% endblock %}
 
 {% block content %}
-    <h1>Пользователи системы</h1>
+    <h1>Скважины</h1>
 
-    <p><strong>Всего пользователей:</strong> {{ total_count }}</p>
-    <p><a href="{% url 'user_create' %}">Добавить пользователя</a></p>
+    <p><strong>Всего скважин:</strong> {{ total_count }}</p>
+    <p><a href="{% url 'well_create' %}">Добавить скважину</a></p>
 
     <form method="get" style="margin-bottom: 20px;">
         <label for="company">Компания:</label>
@@ -21,40 +21,40 @@
 
         <label for="sort">Сортировка:</label>
         <select name="sort" id="sort">
-            <option value="username" {% if sort == "username" %}selected{% endif %}>По username (А-Я)</option>
-            <option value="-username" {% if sort == "-username" %}selected{% endif %}>По username (Я-А)</option>
+            <option value="name" {% if sort == "name" %}selected{% endif %}>По названию (А-Я)</option>
+            <option value="-name" {% if sort == "-name" %}selected{% endif %}>По названию (Я-А)</option>
             <option value="company" {% if sort == "company" %}selected{% endif %}>По компании</option>
         </select>
 
         <button type="submit">Применить</button>
     </form>
 
-    {% if users %}
+    {% if wells %}
         <table border="1" cellpadding="8" cellspacing="0">
             <thead>
                 <tr>
-                    <th>Username</th>
-                    <th>Имя</th>
-                    <th>Фамилия</th>
+                    <th>Название</th>
                     <th>Компания</th>
-                    <th>Отдел</th>
-                    <th>Телефон</th>
+                    <th>Тип</th>
+                    <th>Глубина</th>
+                    <th>Широта</th>
+                    <th>Долгота</th>
                     <th>Действия</th>
                 </tr>
             </thead>
             <tbody>
-                {% for user_obj in users %}
+                {% for well in wells %}
                     <tr>
-                        <td>{{ user_obj.username }}</td>
-                        <td>{{ user_obj.first_name|default:"—" }}</td>
-                        <td>{{ user_obj.last_name|default:"—" }}</td>
-                        <td>{{ user_obj.profile.oil_company.name|default:"—" }}</td>
-                        <td>{{ user_obj.profile.department|default:"—" }}</td>
-                        <td>{{ user_obj.profile.phone_number|default:"—" }}</td>
+                        <td>{{ well.name }}</td>
+                        <td>{{ well.oil_company.name|default:"—" }}</td>
+                        <td>{{ well.type|default:"—" }}</td>
+                        <td>{{ well.max_drilling_depth|default:"—" }}</td>
+                        <td>{{ well.latitude|default:"—" }}</td>
+                        <td>{{ well.longitude|default:"—" }}</td>
                         <td>
-                            <a href="{% url 'user_update' user_obj.pk %}">Редактировать</a>
+                            <a href="{% url 'well_update' well.pk %}">Редактировать</a>
                             |
-                            <a href="{% url 'user_delete' user_obj.pk %}">Удалить</a>
+                            <a href="{% url 'well_delete' well.pk %}">Удалить</a>
                         </td>
                     </tr>
                 {% endfor %}
@@ -77,6 +77,6 @@
             </div>
         {% endif %}
     {% else %}
-        <p>Пользователей пока нет.</p>
+        <p>Скважин пока нет.</p>
     {% endif %}
 {% endblock %}
