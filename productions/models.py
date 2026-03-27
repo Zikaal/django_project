@@ -113,8 +113,8 @@ class DailyProduction(models.Model):
         max_digits=5,
         decimal_places=2,
         validators=[
-            MinValueValidator(0, message="Обводненность не может быть меньше 0%."),
-            MaxValueValidator(100, message="Обводненность не может быть больше 100%."),
+            MinValueValidator(0, message="Обводненность не может быть меньше 0%%."),
+            MaxValueValidator(100, message="Обводненность не может быть больше 100%%."),
         ],
         error_messages={
             "blank": "Укажите обводненность.",

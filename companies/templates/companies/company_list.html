@@ -1,87 +1,196 @@
 {% extends "base.html" %}
 
-{% block title %}Нефтяные компании{% endblock %}
+{% block title %}Компании{% endblock %}
 
 {% block content %}
-    <h1>Нефтяные компании</h1>
+<div class="space-y-6">
+    <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900">Нефтяные компании</h1>
+                <p class="mt-1 text-sm text-slate-500">Всего компаний: {{ total_count }}</p>
+            </div>
 
-    <p><strong>Всего компаний:</strong> {{ total_count }}</p>
-    <p><a href="{% url 'company_create' %}">Добавить компанию</a></p>
+            <a
+                href="{% url 'company_create' %}"
+                class="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+            >
+                Добавить компанию
+            </a>
+        </div>
 
-    <form method="get" style="margin-bottom: 20px;">
-        <label for="region">Регион:</label>
-        <input type="text" name="region" id="region" value="{{ region }}">
+        <div class="border-b border-slate-100 px-6 py-5">
+            <form method="get" class="grid gap-4 md:grid-cols-3">
+                <div>
+                    <label for="region" class="mb-2 block text-sm font-medium text-slate-700">Регион</label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <input
+                            type="text"
+                            name="region"
+                            id="region"
+                            value="{{ region }}"
+                            placeholder="Поиск по региону..."
+                            class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 focus:ring-0"
+                        >
+                    </div>
+                </div>
 
-        <label for="sort">Сортировка:</label>
-        <select name="sort" id="sort">
-            <option value="name" {% if sort == "name" %}selected{% endif %}>По названию (А-Я)</option>
-            <option value="-name" {% if sort == "-name" %}selected{% endif %}>По названию (Я-А)</option>
-            <option value="region" {% if sort == "region" %}selected{% endif %}>По региону</option>
-        </select>
+                <div>
+                    <label for="sort" class="mb-2 block text-sm font-medium text-slate-700">Сортировка</label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <select
+                            name="sort"
+                            id="sort"
+                            class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 focus:ring-0"
+                        >
+                            <option value="name" {% if sort == "name" %}selected{% endif %}>По названию (А-Я)</option>
+                            <option value="-name" {% if sort == "-name" %}selected{% endif %}>По названию (Я-А)</option>
+                            <option value="region" {% if sort == "region" %}selected{% endif %}>По региону</option>
+                        </select>
+                    </div>
+                </div>
 
-        <button type="submit">Применить</button>
-    </form>
+                <div class="flex items-end justify-end gap-3">
+                    <a
+                        href="{% url 'company_list' %}"
+                        class="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                        Сбросить
+                    </a>
 
-    {% if companies %}
-        <table border="1" cellpadding="8" cellspacing="0">
-            <thead>
-                <tr>
-                    <th>Название компании</th>
-                    <th>Регион</th>
-                    <th>Количество сотрудников</th>
-                    <th>Количество скважин</th>
-                    <th>Сотрудники</th>
-                    <th>Скважины</th>
-                    <th>Действия</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for company in companies %}
+                    <button type="submit" class="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Применить</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
                     <tr>
-                        <td>{{ company.name }}</td>
-                        <td>{{ company.region }}</td>
-                        <td>{{ company.employees.count }}</td>
-                        <td>{{ company.wells.count }}</td>
-                        <td>
-                            {% for profile in company.employees.all %}
-                                {{ profile.user.username }}{% if not forloop.last %}, {% endif %}
-                            {% empty %}
-                                —
-                            {% endfor %}
-                        </td>
-                        <td>
-                            {% for well in company.wells.all %}
-                                {{ well.name }} ({{ well.max_drilling_depth|default:"—" }} м){% if not forloop.last %}, {% endif %}
-                            {% empty %}
-                                —
-                            {% endfor %}
-                        </td>
-                        <td>
-                            <a href="{% url 'company_update' company.pk %}">Редактировать</a>
-                            |
-                            <a href="{% url 'company_delete' company.pk %}">Удалить</a>
-                        </td>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Компания
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Регион
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Сотрудники
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Скважины
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Действия
+                        </th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+
+                <tbody class="divide-y divide-slate-100">
+                    {% for company in companies %}
+                        <tr class="align-top hover:bg-slate-50/80">
+                            <td class="px-6 py-4">
+                                <p class="font-semibold text-slate-900">{{ company.name }}</p>
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {{ company.region }}
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                <p class="mb-2 font-medium text-slate-900">
+                                    {{ company.employees.count }} сотрудник(ов)
+                                </p>
+
+                                <div class="max-w-md space-y-1">
+                                    {% for profile in company.employees.all %}
+                                        <div class="rounded-xl bg-slate-50 px-3 py-2">
+                                            {{ profile.user.username }}
+                                        </div>
+                                    {% empty %}
+                                        <span class="text-slate-400">—</span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                <p class="mb-2 font-medium text-slate-900">
+                                    {{ company.wells.count }} скважин(а)
+                                </p>
+
+                                <div class="max-w-md space-y-1">
+                                    {% for well in company.wells.all %}
+                                        <div class="rounded-xl bg-slate-50 px-3 py-2">
+                                            {{ well.name }}
+                                            <span class="text-slate-400">
+                                                ({{ well.max_drilling_depth|default:"—" }} м)
+                                            </span>
+                                        </div>
+                                    {% empty %}
+                                        <span class="text-slate-400">—</span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col gap-2 sm:flex-row">
+                                    <a
+                                        href="{% url 'company_update' company.pk %}"
+                                        class="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                                    >
+                                        Редактировать
+                                    </a>
+
+                                    <a
+                                        href="{% url 'company_delete' company.pk %}"
+                                        class="inline-flex items-center rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                                    >
+                                        Удалить
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-10 text-center text-sm text-slate-500">
+                                Компаний пока нет.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
         {% if is_paginated %}
-            <div style="margin-top: 20px;">
-                {% if page_obj.has_previous %}
-                    <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}">Назад</a>
-                {% endif %}
-
-                <span>
+            <div class="flex flex-col gap-4 border-t border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-sm text-slate-500">
                     Показаны записи {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ page_obj.paginator.count }}
-                </span>
+                </p>
 
-                {% if page_obj.has_next %}
-                    <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}">Вперед</a>
-                {% endif %}
+                <div class="flex items-center gap-2">
+                    {% if page_obj.has_previous %}
+                        <a
+                            href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}"
+                            class="inline-flex items-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                            Назад
+                        </a>
+                    {% endif %}
+
+                    <span class="inline-flex items-center rounded-xl bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700">
+                        {{ page_obj.number }}
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a
+                            href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}"
+                            class="inline-flex items-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                            Вперед
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         {% endif %}
-    {% else %}
-        <p>Компаний пока нет.</p>
-    {% endif %}
+    </div>
+</div>
 {% endblock %}

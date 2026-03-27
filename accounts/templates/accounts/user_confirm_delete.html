@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-
 {% block title %}Удаление пользователя{% endblock %}
-
 {% block content %}
-    <h1>Удаление пользователя</h1>
-    <p>Вы уверены, что хотите удалить пользователя "{{ object.username }}"?</p>
-
-    <form method="post">
-        {% csrf_token %}
-        <button type="submit">Удалить</button>
-        <a href="{% url 'user_list' %}">Отмена</a>
+<div class="mx-auto max-w-xl rounded-3xl border border-rose-200 bg-white shadow-sm">
+  <div class="border-b border-rose-100 px-6 py-5"><h1 class="text-2xl font-bold text-slate-900">Удаление пользователя</h1></div>
+  <div class="space-y-6 px-6 py-6">
+    <p class="text-sm text-slate-600">Вы уверены, что хотите удалить пользователя <span class="font-semibold text-slate-900">"{{ object.username }}"</span>?</p>
+    <form method="post" class="flex items-center justify-end gap-3">{% csrf_token %}
+      <a href="{% url 'user_list' %}" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Отмена</a>
+      <button type="submit" class="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-700">Удалить</button>
     </form>
+  </div>
+</div>
 {% endblock %}

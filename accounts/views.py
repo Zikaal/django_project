@@ -3,7 +3,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, TemplateView
 
 from companies.models import OilCompany
 from .forms import UserCreateForm, UserUpdateForm, ProfileForm
@@ -155,23 +155,30 @@ class UserDeleteView(LoginRequiredMixin, DeleteView):
     template_name = "accounts/user_confirm_delete.html"
     success_url = reverse_lazy("user_list")
 
+class ProfileDetailView(LoginRequiredMixin, TemplateView):
+    template_name = "accounts/profile.html"
 
-class ProfileUpdateView(LoginRequiredMixin, UpdateView):
-    """
-    Представление для редактирования собственного профиля текущим пользователем.
+def profile_update_view(request):
+    user = request.user
+    profile, _ = Profile.objects.get_or_create(user=user)
 
-    Важно: пользователь может редактировать только свой профиль.
-    Метод get_object переопределён для безопасности.
-    """
+    if request.method == "POST":
+        user_form = UserUpdateForm(request.POST, instance=user)
+        profile_form = ProfileForm(request.POST, instance=profile)
 
-    model = Profile
-    form_class = ProfileForm
-    template_name = "accounts/profile_form.html"
-    success_url = reverse_lazy("profile")
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            return redirect("profile")
+    else:
+        user_form = UserUpdateForm(instance=user)
+        profile_form = ProfileForm(instance=profile)
 
-    def get_object(self, queryset=None):
-        """
-        Возвращает профиль текущего авторизованного пользователя.
-        Защищает от попыток редактирования чужого профиля.
-        """
-        return self.request.user.profile
+    return render(
+        request,
+        "accounts/profile_form.html",
+        {
+            "user_form": user_form,
+            "profile_form": profile_form,
+        },
+    )

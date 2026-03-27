@@ -1,18 +1,49 @@
 {% extends "base.html" %}
 
-{% block title %}Регистрация{% endblock %}
+{% block title %}Вход{% endblock %}
 
 {% block content %}
-    <h1>Регистрация</h1>
+<div class="mx-auto max-w-2xl">
+    <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-100 px-6 py-5">
+            <h1 class="text-2xl font-bold text-slate-900">Вход в систему</h1>
+            <p class="mt-1 text-sm text-slate-500">Введите данные своей учетной записи</p>
+        </div>
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Зарегистрироваться</button>
-    </form>
+        <form method="post" class="space-y-6 px-6 py-6">
+            {% csrf_token %}
 
-    <p>
-        Уже есть аккаунт?
-        <a href="{% url 'login' %}">Войти</a>
-    </p>
+            {% if form.non_field_errors %}
+                <div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            {% for field in form %}
+                <div>
+                    <label for="{{ field.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-700">
+                        {{ field.label }}
+                    </label>
+
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-100">
+                        {{ field }}
+                    </div>
+
+                    {% if field.errors %}
+                        <p class="mt-2 text-sm text-rose-500">
+                            {{ field.errors|join:", " }}
+                        </p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <button
+                type="submit"
+                class="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+            >
+                Войти
+            </button>
+        </form>
+    </div>
+</div>
 {% endblock %}

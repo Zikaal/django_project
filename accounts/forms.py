@@ -46,7 +46,7 @@ class UserCreateForm(forms.ModelForm):
     bio = forms.CharField(
         label="О себе",
         required=False,
-        widget=forms.Textarea(attrs={"rows": 3})
+        widget=forms.Textarea
     )
 
     class Meta:
@@ -116,3 +116,6 @@ class ProfileForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = ["oil_company", "department", "phone_number", "bio"]
+        widgets = {
+            "bio": forms.Textarea(attrs={"rows":5}),
+        }

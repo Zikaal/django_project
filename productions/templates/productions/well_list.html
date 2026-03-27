@@ -3,80 +3,192 @@
 {% block title %}Скважины{% endblock %}
 
 {% block content %}
-    <h1>Скважины</h1>
+<div class="space-y-6">
+    <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900">Скважины</h1>
+                <p class="mt-1 text-sm text-slate-500">Всего скважин: {{ total_count }}</p>
+            </div>
 
-    <p><strong>Всего скважин:</strong> {{ total_count }}</p>
-    <p><a href="{% url 'well_create' %}">Добавить скважину</a></p>
+            <a
+                href="{% url 'well_create' %}"
+                class="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+            >
+                Добавить скважину
+            </a>
+        </div>
 
-    <form method="get" style="margin-bottom: 20px;">
-        <label for="company">Компания:</label>
-        <select name="company" id="company">
-            <option value="">Все</option>
-            {% for company in companies %}
-                <option value="{{ company.id }}" {% if selected_company == company.id|stringformat:"s" %}selected{% endif %}>
-                    {{ company.name }}
-                </option>
-            {% endfor %}
-        </select>
+        <div class="border-b border-slate-100 px-6 py-5">
+            <form method="get" class="grid gap-4 md:grid-cols-3">
+                <div>
+                    <label for="company" class="mb-2 block text-sm font-medium text-slate-700">Компания</label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <select
+                            name="company"
+                            id="company"
+                            class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 focus:ring-0"
+                        >
+                            <option value="">Все компании</option>
+                            {% for company in companies %}
+                                <option value="{{ company.id }}" {% if selected_company == company.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ company.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
 
-        <label for="sort">Сортировка:</label>
-        <select name="sort" id="sort">
-            <option value="name" {% if sort == "name" %}selected{% endif %}>По названию (А-Я)</option>
-            <option value="-name" {% if sort == "-name" %}selected{% endif %}>По названию (Я-А)</option>
-            <option value="company" {% if sort == "company" %}selected{% endif %}>По компании</option>
-        </select>
+                <div>
+                    <label for="sort" class="mb-2 block text-sm font-medium text-slate-700">Сортировка</label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <select
+                            name="sort"
+                            id="sort"
+                            class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 focus:ring-0"
+                        >
+                            <option value="name" {% if sort == "name" %}selected{% endif %}>По названию (А-Я)</option>
+                            <option value="-name" {% if sort == "-name" %}selected{% endif %}>По названию (Я-А)</option>
+                            <option value="company" {% if sort == "company" %}selected{% endif %}>По компании</option>
+                        </select>
+                    </div>
+                </div>
 
-        <button type="submit">Применить</button>
-    </form>
+                <div class="flex items-end justify-end gap-3">
+                    <a
+                        href="{% url 'well_list' %}"
+                        class="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                        Сбросить
+                    </a>
 
-    {% if wells %}
-        <table border="1" cellpadding="8" cellspacing="0">
-            <thead>
-                <tr>
-                    <th>Название</th>
-                    <th>Компания</th>
-                    <th>Тип</th>
-                    <th>Глубина</th>
-                    <th>Широта</th>
-                    <th>Долгота</th>
-                    <th>Действия</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for well in wells %}
+                    <button type="submit" class="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Применить</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
                     <tr>
-                        <td>{{ well.name }}</td>
-                        <td>{{ well.oil_company.name|default:"—" }}</td>
-                        <td>{{ well.type|default:"—" }}</td>
-                        <td>{{ well.max_drilling_depth|default:"—" }}</td>
-                        <td>{{ well.latitude|default:"—" }}</td>
-                        <td>{{ well.longitude|default:"—" }}</td>
-                        <td>
-                            <a href="{% url 'well_update' well.pk %}">Редактировать</a>
-                            |
-                            <a href="{% url 'well_delete' well.pk %}">Удалить</a>
-                        </td>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Название
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Компания
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Тип
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Глубина
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Широта
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Долгота
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Действия
+                        </th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+
+                <tbody class="divide-y divide-slate-100">
+                    {% for well in wells %}
+                        <tr class="hover:bg-slate-50/80">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
+                                        {{ well.name|slice:":2"|upper }}
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-slate-900">{{ well.name }}</p>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {{ well.oil_company.name|default:"—" }}
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {{ well.type|default:"—" }}
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {{ well.max_drilling_depth|default:"—" }}
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {{ well.latitude|default:"—" }}
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {{ well.longitude|default:"—" }}
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <a
+                                        href="{% url 'well_update' well.pk %}"
+                                        class="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                                    >
+                                        Редактировать
+                                    </a>
+
+                                    <a
+                                        href="{% url 'well_delete' well.pk %}"
+                                        class="inline-flex items-center rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                                    >
+                                        Удалить
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="px-6 py-10 text-center text-sm text-slate-500">
+                                Скважин пока нет.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
         {% if is_paginated %}
-            <div style="margin-top: 20px;">
-                {% if page_obj.has_previous %}
-                    <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}">Назад</a>
-                {% endif %}
-
-                <span>
+            <div class="flex flex-col gap-4 border-t border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-sm text-slate-500">
                     Показаны записи {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ page_obj.paginator.count }}
-                </span>
+                </p>
 
-                {% if page_obj.has_next %}
-                    <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}">Вперед</a>
-                {% endif %}
+                <div class="flex items-center gap-2">
+                    {% if page_obj.has_previous %}
+                        <a
+                            href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}"
+                            class="inline-flex items-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                            Назад
+                        </a>
+                    {% endif %}
+
+                    <span class="inline-flex items-center rounded-xl bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700">
+                        {{ page_obj.number }}
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a
+                            href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}"
+                            class="inline-flex items-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                            Вперед
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         {% endif %}
-    {% else %}
-        <p>Скважин пока нет.</p>
-    {% endif %}
+    </div>
+</div>
 {% endblock %}

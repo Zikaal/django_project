@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'productions',
     'companies',
+    "tailwind",
+    "theme",
 ]
 
 MIDDLEWARE = [
@@ -124,3 +126,5 @@ LOGIN_URL = "login"
 
 LANGUAGE_CODE = "ru"
 USE_I18N = True
+
+TAILWIND_APP_NAME = "theme"

@@ -2,11 +2,12 @@ from django.urls import path, include
 
 from .views import (
     RegisterView,
-    ProfileUpdateView,
     UserListView,
     UserCreateView,
     UserDeleteView,
+    ProfileDetailView,
     user_update_view,
+    profile_update_view
 )
 
 
@@ -24,10 +25,16 @@ urlpatterns = [
 
     # Редактирование собственного профиля текущего пользователя
     path(
-        "profile/",
-        ProfileUpdateView.as_view(),
-        name="profile",
+        "profile/edit/",
+        profile_update_view,
+        name="profile_edit",
     ),
+
+    # Детали профиля текущего пользователя
+    path(
+        "profile/", 
+        ProfileDetailView.as_view(), 
+        name="profile"),
 
     # Список всех пользователей (для администраторов)
     path(

@@ -3,106 +3,254 @@
 {% block title %}Суточные рапорты{% endblock %}
 
 {% block content %}
-    <h1>Суточные рапорты</h1>
+<div class="space-y-6">
+    <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900">Суточные рапорты</h1>
+                <p class="mt-1 text-sm text-slate-500">Всего записей: {{ total_count }}</p>
+            </div>
 
-    <p><strong>Всего записей:</strong> {{ total_count }}</p>
+            <a
+                href="{% url 'dailyproduction_create' %}"
+                class="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+            >
+                Добавить рапорт
+            </a>
+        </div>
 
-    <p>
-        <a href="{% url 'dailyproduction_create' %}">Добавить рапорт</a>
-    </p>
+        <div class="border-b border-slate-100 px-6 py-5">
+            <form method="get" class="grid gap-4 xl:grid-cols-5">
+                <div>
+                    <label for="company" class="mb-2 block text-sm font-medium text-slate-700">Компания</label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <select
+                            name="company"
+                            id="company"
+                            class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 focus:ring-0"
+                        >
+                            <option value="">Все компании</option>
+                            {% for company in companies %}
+                                <option value="{{ company.id }}" {% if selected_company == company.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ company.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
 
-    <form method="get" style="margin-bottom: 20px;">
-        <label for="company">Компания:</label>
-        <select name="company" id="company">
-            <option value="">Все</option>
-            {% for company in companies %}
-                <option value="{{ company.id }}" {% if selected_company == company.id|stringformat:"s" %}selected{% endif %}>
-                    {{ company.name }}
-                </option>
-            {% endfor %}
-        </select>
+                <div>
+                    <label for="well" class="mb-2 block text-sm font-medium text-slate-700">Скважина</label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <select
+                            name="well"
+                            id="well"
+                            class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 focus:ring-0"
+                        >
+                            <option value="">Все скважины</option>
+                            {% for well in wells %}
+                                <option value="{{ well.id }}" {% if selected_well == well.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ well.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
 
-        <label for="well">Скважина:</label>
-        <select name="well" id="well">
-            <option value="">Все</option>
-            {% for well in wells %}
-                <option value="{{ well.id }}" {% if selected_well == well.id|stringformat:"s" %}selected{% endif %}>
-                    {{ well.name }}
-                </option>
-            {% endfor %}
-        </select>
+                <div>
+                    <label for="date_from" class="mb-2 block text-sm font-medium text-slate-700">Дата с</label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <input
+                            type="date"
+                            name="date_from"
+                            id="date_from"
+                            value="{{ date_from }}"
+                            class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 focus:ring-0"
+                        >
+                    </div>
+                </div>
 
-        <label for="date_from">Дата с:</label>
-        <input type="date" name="date_from" id="date_from" value="{{ date_from }}">
+                <div>
+                    <label for="date_to" class="mb-2 block text-sm font-medium text-slate-700">Дата по</label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <input
+                            type="date"
+                            name="date_to"
+                            id="date_to"
+                            value="{{ date_to }}"
+                            class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 focus:ring-0"
+                        >
+                    </div>
+                </div>
 
-        <label for="date_to">Дата по:</label>
-        <input type="date" name="date_to" id="date_to" value="{{ date_to }}">
+                <div>
+                    <label for="sort" class="mb-2 block text-sm font-medium text-slate-700">Сортировка</label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <select
+                            name="sort"
+                            id="sort"
+                            class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 focus:ring-0"
+                        >
+                            <option value="-date" {% if sort == "-date" %}selected{% endif %}>Сначала новые</option>
+                            <option value="date" {% if sort == "date" %}selected{% endif %}>Сначала старые</option>
+                            <option value="company" {% if sort == "company" %}selected{% endif %}>По компании</option>
+                            <option value="well" {% if sort == "well" %}selected{% endif %}>По скважине</option>
+                        </select>
+                    </div>
+                </div>
 
-        <label for="sort">Сортировка:</label>
-        <select name="sort" id="sort">
-            <option value="-date" {% if sort == "-date" %}selected{% endif %}>Сначала новые</option>
-            <option value="date" {% if sort == "date" %}selected{% endif %}>Сначала старые</option>
-            <option value="company" {% if sort == "company" %}selected{% endif %}>По компании</option>
-            <option value="well" {% if sort == "well" %}selected{% endif %}>По скважине</option>
-        </select>
+                <div class="xl:col-span-5 flex flex-wrap items-center justify-end gap-3 pt-2">
+                    <a
+                        href="{% url 'dailyproduction_list' %}"
+                        class="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                        Сбросить
+                    </a>
 
-        <button type="submit">Применить</button>
-    </form>
+                    <button type="submit" class="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Применить</button>
+                </div>
+            </form>
+        </div>
 
-    {% if reports %}
-        <table border="1" cellpadding="8" cellspacing="0">
-            <thead>
-                <tr>
-                    <th>Компания</th>
-                    <th>Скважина</th>
-                    <th>Дата</th>
-                    <th>Часы</th>
-                    <th>Жидкость (м³)</th>
-                    <th>Вода (%)</th>
-                    <th>Плотность (т/м³)</th>
-                    <th>Расчетная нефть (т)</th>
-                    <th>Действия</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for report in reports %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
                     <tr>
-                        <td>{{ report.well.oil_company.name|default:"—" }}</td>
-                        <td>{{ report.well.name }}</td>
-                        <td>{{ report.date }}</td>
-                        <td>{{ report.work_time }}</td>
-                        <td>{{ report.liquid_debit }}</td>
-                        <td>{{ report.water_cut }}</td>
-                        <td>{{ report.oil_density }}</td>
-                        <td>{{ report.calculated_oil }}</td>
-                        <td>
-                            <a href="{% url 'dailyproduction_update' report.pk %}">Редактировать</a>
-                            |
-                            <a href="{% url 'dailyproduction_delete' report.pk %}">Удалить</a>
-                        </td>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Компания
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Скважина
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Дата
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Часы
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Жидкость
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Вода
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Плотность
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Нефть
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Действия
+                        </th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+
+                <tbody class="divide-y divide-slate-100">
+                    {% for report in reports %}
+                        <tr class="hover:bg-slate-50/80">
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {{ report.well.oil_company.name|default:"—" }}
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
+                                        {{ report.well.name|slice:":2"|upper }}
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-slate-900">{{ report.well.name }}</p>
+                                        <p class="text-sm text-slate-500">{{ report.well.type|default:"Тип не указан" }}</p>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {{ report.date }}
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {{ report.work_time }}
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {{ report.liquid_debit }}
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {{ report.water_cut }}
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {{ report.oil_density }}
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <span class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-600">
+                                    {{ report.calculated_oil }}
+                                </span>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <a
+                                        href="{% url 'dailyproduction_update' report.pk %}"
+                                        class="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                                    >
+                                        Редактировать
+                                    </a>
+
+                                    <a
+                                        href="{% url 'dailyproduction_delete' report.pk %}"
+                                        class="inline-flex items-center rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                                    >
+                                        Удалить
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="9" class="px-6 py-10 text-center text-sm text-slate-500">
+                                Суточных рапортов пока нет.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
         {% if is_paginated %}
-            <div style="margin-top: 20px;">
-                {% if page_obj.has_previous %}
-                    <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}">Назад</a>
-                {% endif %}
+            <div class="flex flex-col gap-4 border-t border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-sm text-slate-500">
+                    Показаны записи {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ page_obj.paginator.count }}
+                </p>
 
-                <span>
-                    Показаны записи
-                    {{ page_obj.start_index }}–{{ page_obj.end_index }}
-                    из {{ page_obj.paginator.count }}
-                </span>
+                <div class="flex items-center gap-2">
+                    {% if page_obj.has_previous %}
+                        <a
+                            href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}"
+                            class="inline-flex items-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                            Назад
+                        </a>
+                    {% endif %}
 
-                {% if page_obj.has_next %}
-                    <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}">Вперед</a>
-                {% endif %}
+                    <span class="inline-flex items-center rounded-xl bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700">
+                        {{ page_obj.number }}
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a
+                            href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}"
+                            class="inline-flex items-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                            Вперед
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         {% endif %}
-    {% else %}
-        <p>Суточных рапортов пока нет.</p>
-    {% endif %}
+    </div>
+</div>
 {% endblock %}
