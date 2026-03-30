@@ -4,8 +4,8 @@
 
 {% block content %}
 <div class="space-y-6">
-    <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex flex-col gap-4 border-b border-slate-100 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900">Нефтяные компании</h1>
                 <p class="mt-1 text-sm text-slate-500">Всего компаний: {{ total_count }}</p>
@@ -13,14 +13,14 @@
 
             <a
                 href="{% url 'company_create' %}"
-                class="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                class="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto"
             >
                 Добавить компанию
             </a>
         </div>
 
-        <div class="border-b border-slate-100 px-6 py-5">
-            <form method="get" class="grid gap-4 md:grid-cols-3">
+        <div class="border-b border-slate-100 px-4 py-5 sm:px-6">
+            <form method="get" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <label for="region" class="mb-2 block text-sm font-medium text-slate-700">Регион</label>
                     <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
@@ -50,123 +50,185 @@
                     </div>
                 </div>
 
-                <div class="flex items-end justify-end gap-3">
+                <div class="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:justify-end lg:col-span-1 lg:items-end">
                     <a
                         href="{% url 'company_list' %}"
-                        class="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
                     >
                         Сбросить
                     </a>
 
-                    <button type="submit" class="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Применить</button>
+                    <button
+                        type="submit"
+                        class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
+                    >
+                        Применить
+                    </button>
                 </div>
             </form>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200">
-                <thead class="bg-slate-50">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Компания
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Регион
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Сотрудники
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Скважины
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Действия
-                        </th>
-                    </tr>
-                </thead>
+        {% if companies %}
+            <div class="space-y-4 px-4 py-5 sm:px-6 xl:hidden">
+                {% for company in companies %}
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                        <div class="min-w-0">
+                            <p class="break-words text-lg font-semibold leading-tight text-slate-900">
+                                {{ company.name }}
+                            </p>
 
-                <tbody class="divide-y divide-slate-100">
-                    {% for company in companies %}
-                        <tr class="align-top hover:bg-slate-50/80">
-                            <td class="px-6 py-4">
-                                <p class="font-semibold text-slate-900">{{ company.name }}</p>
-                            </td>
+                            <p class="mt-1 break-words text-sm text-slate-500">
+                                {{ company.region|default:"Регион не указан" }}
+                            </p>
 
-                            <td class="px-6 py-4 text-sm text-slate-600">
-                                {{ company.region }}
-                            </td>
+                            <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <button
+                                    type="button"
+                                    class="w-full rounded-xl bg-white p-3 text-left transition hover:bg-slate-100"
+                                    data-modal-target="employees-modal-{{ company.pk }}"
+                                >
+                                    <p class="text-xs uppercase tracking-wide text-slate-400">Сотрудники</p>
+                                    <p class="mt-1 text-sm font-semibold text-slate-900">
+                                        {{ company.employees.count }} сотрудник(ов)
+                                    </p>
+                                </button>
 
-                            <td class="px-6 py-4 text-sm text-slate-600">
-                                <p class="mb-2 font-medium text-slate-900">
-                                    {{ company.employees.count }} сотрудник(ов)
-                                </p>
+                                <button
+                                    type="button"
+                                    class="w-full rounded-xl bg-white p-3 text-left transition hover:bg-slate-100"
+                                    data-modal-target="wells-modal-{{ company.pk }}"
+                                >
+                                    <p class="text-xs uppercase tracking-wide text-slate-400">Скважины</p>
+                                    <p class="mt-1 text-sm font-semibold text-slate-900">
+                                        {{ company.wells.count }} скважин(а)
+                                    </p>
+                                </button>
+                            </div>
 
-                                <div class="max-w-md space-y-1">
-                                    {% for profile in company.employees.all %}
-                                        <div class="rounded-xl bg-slate-50 px-3 py-2">
-                                            {{ profile.user.username }}
-                                        </div>
-                                    {% empty %}
-                                        <span class="text-slate-400">—</span>
-                                    {% endfor %}
-                                </div>
-                            </td>
+                            <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+                                <a
+                                    href="{% url 'company_update' company.pk %}"
+                                    class="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:w-auto"
+                                >
+                                    Редактировать
+                                </a>
 
-                            <td class="px-6 py-4 text-sm text-slate-600">
-                                <p class="mb-2 font-medium text-slate-900">
-                                    {{ company.wells.count }} скважин(а)
-                                </p>
+                                <a
+                                    href="{% url 'company_delete' company.pk %}"
+                                    class="inline-flex w-full items-center justify-center rounded-xl border border-rose-200 px-3 py-2.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 sm:w-auto"
+                                >
+                                    Удалить
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
 
-                                <div class="max-w-md space-y-1">
-                                    {% for well in company.wells.all %}
-                                        <div class="rounded-xl bg-slate-50 px-3 py-2">
-                                            {{ well.name }}
-                                            <span class="text-slate-400">
-                                                ({{ well.max_drilling_depth|default:"—" }} м)
-                                            </span>
-                                        </div>
-                                    {% empty %}
-                                        <span class="text-slate-400">—</span>
-                                    {% endfor %}
-                                </div>
-                            </td>
-
-                            <td class="px-6 py-4">
-                                <div class="flex flex-col gap-2 sm:flex-row">
-                                    <a
-                                        href="{% url 'company_update' company.pk %}"
-                                        class="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-                                    >
-                                        Редактировать
-                                    </a>
-
-                                    <a
-                                        href="{% url 'company_delete' company.pk %}"
-                                        class="inline-flex items-center rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
-                                    >
-                                        Удалить
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                    {% empty %}
+        <div class="hidden xl:block">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
                         <tr>
-                            <td colspan="5" class="px-6 py-10 text-center text-sm text-slate-500">
-                                Компаний пока нет.
-                            </td>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Компания
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Регион
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Сотрудники
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Скважины
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Действия
+                            </th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+
+                    <tbody class="divide-y divide-slate-100">
+                        {% for company in companies %}
+                            <tr class="align-top hover:bg-slate-50/80">
+                                <td class="px-6 py-4">
+                                    <p class="font-semibold text-slate-900">{{ company.name }}</p>
+                                </td>
+
+                                <td class="px-6 py-4 text-sm text-slate-600">
+                                    {{ company.region }}
+                                </td>
+
+                                <td class="px-6 py-4 text-sm text-slate-600">
+                                    <button
+                                        type="button"
+                                        class="rounded-xl bg-slate-50 px-4 py-3 text-left transition hover:bg-slate-100"
+                                        data-modal-target="employees-modal-{{ company.pk }}"
+                                    >
+                                        <p class="font-medium text-slate-900">
+                                            {{ company.employees.count }} сотрудник(ов)
+                                        </p>
+                                        <p class="mt-1 text-xs text-slate-400">Нажмите, чтобы посмотреть список</p>
+                                    </button>
+                                </td>
+
+                                <td class="px-6 py-4 text-sm text-slate-600">
+                                    <button
+                                        type="button"
+                                        class="rounded-xl bg-slate-50 px-4 py-3 text-left transition hover:bg-slate-100"
+                                        data-modal-target="wells-modal-{{ company.pk }}"
+                                    >
+                                        <p class="font-medium text-slate-900">
+                                            {{ company.wells.count }} скважин(а)
+                                        </p>
+                                        <p class="mt-1 text-xs text-slate-400">Нажмите, чтобы посмотреть список</p>
+                                    </button>
+                                </td>
+
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-col gap-2 sm:flex-row">
+                                        <a
+                                            href="{% url 'company_update' company.pk %}"
+                                            class="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                                        >
+                                            Редактировать
+                                        </a>
+
+                                        <a
+                                            href="{% url 'company_delete' company.pk %}"
+                                            class="inline-flex items-center rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                                        >
+                                            Удалить
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="px-6 py-10 text-center text-sm text-slate-500">
+                                    Компаний пока нет.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
 
+        {% if not companies %}
+            <div class="px-4 py-10 text-center text-sm text-slate-500 sm:px-6 xl:hidden">
+                Компаний пока нет.
+            </div>
+        {% endif %}
+
         {% if is_paginated %}
-            <div class="flex flex-col gap-4 border-t border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-col gap-4 border-t border-slate-100 px-4 py-5 sm:px-6 sm:flex-row sm:items-center sm:justify-between">
                 <p class="text-sm text-slate-500">
                     Показаны записи {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ page_obj.paginator.count }}
                 </p>
 
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                     {% if page_obj.has_previous %}
                         <a
                             href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}"
@@ -193,4 +255,136 @@
         {% endif %}
     </div>
 </div>
+
+{% for company in companies %}
+    <div
+        id="employees-modal-{{ company.pk }}"
+        class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 px-4 py-6"
+    >
+        <div class="max-h-[90vh] w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-xl">
+            <div class="flex items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Сотрудники</h2>
+                    <p class="mt-1 text-sm text-slate-500">{{ company.name }}</p>
+                </div>
+                <button
+                    type="button"
+                    class="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+                    data-modal-close="employees-modal-{{ company.pk }}"
+                >
+                    Закрыть
+                </button>
+            </div>
+
+            <div class="max-h-[70vh] overflow-y-auto px-4 py-4 sm:px-6">
+                {% if company.employees.all %}
+                    <div class="space-y-2">
+                        {% for profile in company.employees.all %}
+                            <div class="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                                {{ profile.user.username }}
+                            </div>
+                        {% empty %}
+                            <p class="text-sm text-slate-500">Сотрудников нет.</p>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-sm text-slate-500">Сотрудников нет.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div
+        id="wells-modal-{{ company.pk }}"
+        class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 px-4 py-6"
+    >
+        <div class="max-h-[90vh] w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-xl">
+            <div class="flex items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Скважины</h2>
+                    <p class="mt-1 text-sm text-slate-500">{{ company.name }}</p>
+                </div>
+                <button
+                    type="button"
+                    class="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+                    data-modal-close="wells-modal-{{ company.pk }}"
+                >
+                    Закрыть
+                </button>
+            </div>
+
+            <div class="max-h-[70vh] overflow-y-auto px-4 py-4 sm:px-6">
+                {% if company.wells.all %}
+                    <div class="space-y-2">
+                        {% for well in company.wells.all %}
+                            <div class="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                                {{ well.name }}
+                                <span class="text-slate-400">
+                                    ({{ well.max_drilling_depth|default:"—" }} м)
+                                </span>
+                            </div>
+                        {% empty %}
+                            <p class="text-sm text-slate-500">Скважин нет.</p>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-sm text-slate-500">Скважин нет.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endfor %}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const openButtons = document.querySelectorAll("[data-modal-target]");
+        const closeButtons = document.querySelectorAll("[data-modal-close]");
+
+        openButtons.forEach((button) => {
+            button.addEventListener("click", function () {
+                const modalId = this.getAttribute("data-modal-target");
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.remove("hidden");
+                    modal.classList.add("flex");
+                    document.body.classList.add("overflow-hidden");
+                }
+            });
+        });
+
+        closeButtons.forEach((button) => {
+            button.addEventListener("click", function () {
+                const modalId = this.getAttribute("data-modal-close");
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.add("hidden");
+                    modal.classList.remove("flex");
+                    document.body.classList.remove("overflow-hidden");
+                }
+            });
+        });
+
+        document.querySelectorAll('[id^="employees-modal-"], [id^="wells-modal-"]').forEach((modal) => {
+            modal.addEventListener("click", function (event) {
+                if (event.target === modal) {
+                    modal.classList.add("hidden");
+                    modal.classList.remove("flex");
+                    document.body.classList.remove("overflow-hidden");
+                }
+            });
+        });
+
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+                document.querySelectorAll('[id^="employees-modal-"], [id^="wells-modal-"]').forEach((modal) => {
+                    if (!modal.classList.contains("hidden")) {
+                        modal.classList.add("hidden");
+                        modal.classList.remove("flex");
+                        document.body.classList.remove("overflow-hidden");
+                    }
+                });
+            }
+        });
+    });
+</script>
 {% endblock %}

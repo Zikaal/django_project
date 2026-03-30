@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Вход{% endblock %}
+{% block title %}Регистрация{% endblock %}
 
 {% block content %}
 <div class="mx-auto max-w-2xl">
-    <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div class="border-b border-slate-100 px-6 py-5">
-            <h1 class="text-2xl font-bold text-slate-900">Вход в систему</h1>
-            <p class="mt-1 text-sm text-slate-500">Введите данные своей учетной записи</p>
+    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-100 px-4 py-5 sm:px-6">
+            <h1 class="text-2xl font-bold text-slate-900">Регистрация</h1>
+            <p class="mt-1 text-sm text-slate-500">Создайте новую учетную запись</p>
         </div>
 
-        <form method="post" class="space-y-6 px-6 py-6">
+        <form method="post" class="auth-form grid gap-5 px-4 py-5 sm:px-6">
             {% csrf_token %}
 
             {% if form.non_field_errors %}
@@ -20,30 +20,71 @@
             {% endif %}
 
             {% for field in form %}
-                <div>
+                <div class="min-w-0">
                     <label for="{{ field.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-700">
                         {{ field.label }}
                     </label>
 
-                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-100">
+                    <div class="input-wrapper rounded-2xl border border-slate-200 bg-white px-4 py-3 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-100">
                         {{ field }}
                     </div>
 
+                    {% if field.help_text %}
+                        <div class="mt-2 break-words text-xs leading-5 text-slate-400">
+                            {{ field.help_text|safe }}
+                        </div>
+                    {% endif %}
+
                     {% if field.errors %}
-                        <p class="mt-2 text-sm text-rose-500">
+                        <p class="mt-2 break-words text-sm text-rose-500">
                             {{ field.errors|join:", " }}
                         </p>
                     {% endif %}
                 </div>
             {% endfor %}
 
-            <button
-                type="submit"
-                class="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
-            >
-                Войти
-            </button>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-sm text-slate-500">
+                    Уже есть аккаунт?
+                    <a href="{% url 'login' %}" class="font-medium text-indigo-600 hover:text-indigo-700">
+                        Войти
+                    </a>
+                </p>
+
+                <button
+                    type="submit"
+                    class="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto"
+                >
+                    Зарегистрироваться
+                </button>
+            </div>
         </form>
     </div>
 </div>
+
+<style>
+.auth-form input,
+.auth-form select,
+.auth-form textarea {
+    width: 100%;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 0;
+    font-size: 14px;
+}
+
+.auth-form input:focus,
+.auth-form select:focus,
+.auth-form textarea:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.auth-form textarea {
+    min-height: 140px;
+    resize: vertical;
+}
+</style>
 {% endblock %}

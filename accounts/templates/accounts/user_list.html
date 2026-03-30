@@ -1,42 +1,244 @@
 {% extends "base.html" %}
 {% block title %}Пользователи{% endblock %}
+
 {% block content %}
-<div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
-  <div class="border-b border-slate-100 px-6 py-5">
+<div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+  <div class="border-b border-slate-100 px-4 py-5 sm:px-6">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-      <div><h1 class="text-2xl font-bold text-slate-900">Пользователи</h1><p class="mt-1 text-sm text-slate-500">Всего записей: {{ total_count }}</p></div>
-      <a href="{% url 'user_create' %}" class="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700">Добавить пользователя</a>
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Пользователи</h1>
+        <p class="mt-1 text-sm text-slate-500">Всего записей: {{ total_count }}</p>
+      </div>
+
+      <a
+        href="{% url 'user_create' %}"
+        class="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 sm:w-auto"
+      >
+        Добавить пользователя
+      </a>
     </div>
   </div>
-  <div class="border-b border-slate-100 px-6 py-5">
-    <form method="get" class="grid gap-4 lg:grid-cols-4">
-      <div><label for="company" class="mb-2 block text-sm font-medium text-slate-700">Компания</label><div class="rounded-2xl border border-slate-200 px-4 py-3"><select name="company" id="company" class="w-full border-0 bg-transparent p-0 text-sm focus:ring-0"><option value="">Все</option>{% for company in companies %}<option value="{{ company.id }}" {% if selected_company == company.id|stringformat:"s" %}selected{% endif %}>{{ company.name }}</option>{% endfor %}</select></div></div>
-      <div><label for="sort" class="mb-2 block text-sm font-medium text-slate-700">Сортировка</label><div class="rounded-2xl border border-slate-200 px-4 py-3"><select name="sort" id="sort" class="w-full border-0 bg-transparent p-0 text-sm focus:ring-0"><option value="username" {% if sort == 'username' %}selected{% endif %}>Username (А-Я)</option><option value="-username" {% if sort == '-username' %}selected{% endif %}>Username (Я-А)</option><option value="company" {% if sort == 'company' %}selected{% endif %}>По компании</option></select></div></div>
-      <div class="lg:col-span-2 flex items-end justify-end gap-3"><button type="submit" class="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Применить</button></div>
+
+  <div class="border-b border-slate-100 px-4 py-5 sm:px-6">
+    <form method="get" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <label for="company" class="mb-2 block text-sm font-medium text-slate-700">Компания</label>
+        <div class="rounded-2xl border border-slate-200 px-4 py-3">
+          <select name="company" id="company" class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 focus:ring-0">
+            <option value="">Все</option>
+            {% for company in companies %}
+              <option value="{{ company.id }}" {% if selected_company == company.id|stringformat:"s" %}selected{% endif %}>
+                {{ company.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label for="sort" class="mb-2 block text-sm font-medium text-slate-700">Сортировка</label>
+        <div class="rounded-2xl border border-slate-200 px-4 py-3">
+          <select name="sort" id="sort" class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 focus:ring-0">
+            <option value="username" {% if sort == 'username' %}selected{% endif %}>Username (А-Я)</option>
+            <option value="-username" {% if sort == '-username' %}selected{% endif %}>Username (Я-А)</option>
+            <option value="company" {% if sort == 'company' %}selected{% endif %}>По компании</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:justify-end lg:col-span-2 lg:items-end">
+        <a
+          href="{% url 'user_list' %}"
+          class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
+        >
+          Сбросить
+        </a>
+
+        <button
+          type="submit"
+          class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
+        >
+          Применить
+        </button>
+      </div>
     </form>
   </div>
-  <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-slate-200">
-      <thead class="bg-slate-50"><tr><th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Пользователь</th><th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Контакты</th><th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Компания</th><th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Отдел</th><th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Действия</th></tr></thead>
-      <tbody class="divide-y divide-slate-100">
-        {% for user_obj in users %}
-        <tr class="hover:bg-slate-50/80">
-          <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700">{{ user_obj.username|slice:":2"|upper }}</div><div><p class="font-semibold text-slate-900">{{ user_obj.get_full_name|default:user_obj.username }}</p><p class="text-sm text-slate-500">@{{ user_obj.username }}</p></div></div></td>
-          <td class="px-6 py-4 text-sm text-slate-600"><p>{{ user_obj.email|default:"—" }}</p><p class="mt-1 text-slate-500">{{ user_obj.profile.phone_number|default:"—" }}</p></td>
-          <td class="px-6 py-4 text-sm text-slate-600">{{ user_obj.profile.oil_company.name|default:"—" }}</td>
-          <td class="px-6 py-4 text-sm text-slate-600">{{ user_obj.profile.department|default:"—" }}</td>
-          <td class="px-6 py-4"><div class="flex items-center gap-2"><a href="{% url 'user_update' user_obj.pk %}" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">Редактировать</a><a href="{% url 'user_delete' user_obj.pk %}" class="rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50">Удалить</a></div></td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="5" class="px-6 py-10 text-center text-sm text-slate-500">Пользователей пока нет.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+  {% if users %}
+    <div class="space-y-4 px-4 py-5 sm:px-6 xl:hidden">
+      {% for user_obj in users %}
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+          <div class="flex items-start gap-3 sm:gap-4">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700">
+              {{ user_obj.username|slice:":2"|upper }}
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <p class="break-words text-lg font-semibold leading-tight text-slate-900">
+                {{ user_obj.get_full_name|default:user_obj.username }}
+              </p>
+
+              <p class="mt-1 break-words text-sm text-slate-500">
+                @{{ user_obj.username }}
+              </p>
+
+              <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div class="rounded-xl bg-white p-3">
+                  <p class="text-xs uppercase tracking-wide text-slate-400">Email</p>
+                  <p class="mt-1 break-all text-sm font-semibold text-slate-900">
+                    {{ user_obj.email|default:"—" }}
+                  </p>
+                </div>
+
+                <div class="rounded-xl bg-white p-3">
+                  <p class="text-xs uppercase tracking-wide text-slate-400">Телефон</p>
+                  <p class="mt-1 break-words text-sm font-semibold text-slate-900">
+                    {{ user_obj.profile.phone_number|default:"—" }}
+                  </p>
+                </div>
+
+                <div class="rounded-xl bg-white p-3">
+                  <p class="text-xs uppercase tracking-wide text-slate-400">Компания</p>
+                  <p class="mt-1 break-words text-sm font-semibold text-slate-900">
+                    {{ user_obj.profile.oil_company.name|default:"—" }}
+                  </p>
+                </div>
+
+                <div class="rounded-xl bg-white p-3">
+                  <p class="text-xs uppercase tracking-wide text-slate-400">Отдел</p>
+                  <p class="mt-1 break-words text-sm font-semibold text-slate-900">
+                    {{ user_obj.profile.department|default:"—" }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+                <a
+                  href="{% url 'user_update' user_obj.pk %}"
+                  class="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:w-auto"
+                >
+                  Редактировать
+                </a>
+
+                <a
+                  href="{% url 'user_delete' user_obj.pk %}"
+                  class="inline-flex w-full items-center justify-center rounded-xl border border-rose-200 px-3 py-2.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 sm:w-auto"
+                >
+                  Удалить
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="hidden xl:block">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Пользователь</th>
+            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Контакты</th>
+            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Компания</th>
+            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Отдел</th>
+            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Действия</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-slate-100">
+          {% for user_obj in users %}
+          <tr class="hover:bg-slate-50/80">
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                <div class="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700">
+                  {{ user_obj.username|slice:":2"|upper }}
+                </div>
+                <div>
+                  <p class="font-semibold text-slate-900">{{ user_obj.get_full_name|default:user_obj.username }}</p>
+                  <p class="text-sm text-slate-500">@{{ user_obj.username }}</p>
+                </div>
+              </div>
+            </td>
+
+            <td class="px-6 py-4 text-sm text-slate-600">
+              <p>{{ user_obj.email|default:"—" }}</p>
+              <p class="mt-1 text-slate-500">{{ user_obj.profile.phone_number|default:"—" }}</p>
+            </td>
+
+            <td class="px-6 py-4 text-sm text-slate-600">
+              {{ user_obj.profile.oil_company.name|default:"—" }}
+            </td>
+
+            <td class="px-6 py-4 text-sm text-slate-600">
+              {{ user_obj.profile.department|default:"—" }}
+            </td>
+
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-2">
+                <a
+                  href="{% url 'user_update' user_obj.pk %}"
+                  class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Редактировать
+                </a>
+                <a
+                  href="{% url 'user_delete' user_obj.pk %}"
+                  class="rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                >
+                  Удалить
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="px-6 py-10 text-center text-sm text-slate-500">
+              Пользователей пока нет.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
+
+  {% if not users %}
+    <div class="px-4 py-10 text-center text-sm text-slate-500 sm:px-6 xl:hidden">
+      Пользователей пока нет.
+    </div>
+  {% endif %}
+
   {% if is_paginated %}
-  <div class="flex flex-col gap-4 border-t border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-    <p class="text-sm text-slate-500">Показаны записи {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ page_obj.paginator.count }}</p>
-    <div class="flex items-center gap-2">{% if page_obj.has_previous %}<a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Назад</a>{% endif %}<span class="rounded-xl bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700">{{ page_obj.number }}</span>{% if page_obj.has_next %}<a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Вперед</a>{% endif %}</div>
+  <div class="flex flex-col gap-4 border-t border-slate-100 px-4 py-5 sm:px-6 sm:flex-row sm:items-center sm:justify-between">
+    <p class="text-sm text-slate-500">
+      Показаны записи {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ page_obj.paginator.count }}
+    </p>
+
+    <div class="flex flex-wrap items-center gap-2">
+      {% if page_obj.has_previous %}
+        <a
+          href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}"
+          class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        >
+          Назад
+        </a>
+      {% endif %}
+
+      <span class="rounded-xl bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700">
+        {{ page_obj.number }}
+      </span>
+
+      {% if page_obj.has_next %}
+        <a
+          href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}"
+          class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        >
+          Вперед
+        </a>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
 </div>

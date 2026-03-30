@@ -4,8 +4,8 @@
 
 {% block content %}
 <div class="space-y-6">
-    <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex flex-col gap-4 border-b border-slate-100 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900">Скважины</h1>
                 <p class="mt-1 text-sm text-slate-500">Всего скважин: {{ total_count }}</p>
@@ -13,14 +13,14 @@
 
             <a
                 href="{% url 'well_create' %}"
-                class="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                class="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto"
             >
                 Добавить скважину
             </a>
         </div>
 
-        <div class="border-b border-slate-100 px-6 py-5">
-            <form method="get" class="grid gap-4 md:grid-cols-3">
+        <div class="border-b border-slate-100 px-4 py-5 sm:px-6">
+            <form method="get" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <label for="company" class="mb-2 block text-sm font-medium text-slate-700">Компания</label>
                     <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
@@ -54,117 +54,200 @@
                     </div>
                 </div>
 
-                <div class="flex items-end justify-end gap-3">
+                <div class="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:justify-end lg:col-span-1 lg:items-end">
                     <a
                         href="{% url 'well_list' %}"
-                        class="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
                     >
                         Сбросить
                     </a>
 
-                    <button type="submit" class="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Применить</button>
+                    <button
+                        type="submit"
+                        class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
+                    >
+                        Применить
+                    </button>
                 </div>
             </form>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200">
-                <thead class="bg-slate-50">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Название
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Компания
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Тип
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Глубина
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Широта
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Долгота
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Действия
-                        </th>
-                    </tr>
-                </thead>
+        {% if wells %}
+            <div class="space-y-4 px-4 py-5 sm:px-6 xl:hidden">
+                {% for well in wells %}
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                        <div class="flex items-start gap-3 sm:gap-4">
+                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
+                                {{ well.name|slice:":2"|upper }}
+                            </div>
 
-                <tbody class="divide-y divide-slate-100">
-                    {% for well in wells %}
-                        <tr class="hover:bg-slate-50/80">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
-                                        {{ well.name|slice:":2"|upper }}
+                            <div class="min-w-0 flex-1">
+                                <p class="break-words text-lg font-semibold leading-tight text-slate-900">
+                                    {{ well.name }}
+                                </p>
+
+                                <p class="mt-1 break-words text-sm text-slate-500">
+                                    {{ well.oil_company.name|default:"—" }}
+                                </p>
+
+                                <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div class="rounded-xl bg-white p-3">
+                                        <p class="text-xs uppercase tracking-wide text-slate-400">Тип</p>
+                                        <p class="mt-1 break-words text-sm font-semibold text-slate-900">
+                                            {{ well.type|default:"—" }}
+                                        </p>
                                     </div>
-                                    <div>
-                                        <p class="font-semibold text-slate-900">{{ well.name }}</p>
+
+                                    <div class="rounded-xl bg-white p-3">
+                                        <p class="text-xs uppercase tracking-wide text-slate-400">Глубина</p>
+                                        <p class="mt-1 break-words text-sm font-semibold text-slate-900">
+                                            {{ well.max_drilling_depth|default:"—" }}
+                                        </p>
+                                    </div>
+
+                                    <div class="rounded-xl bg-white p-3">
+                                        <p class="text-xs uppercase tracking-wide text-slate-400">Широта</p>
+                                        <p class="mt-1 break-all text-sm font-semibold text-slate-900">
+                                            {{ well.latitude|default:"—" }}
+                                        </p>
+                                    </div>
+
+                                    <div class="rounded-xl bg-white p-3">
+                                        <p class="text-xs uppercase tracking-wide text-slate-400">Долгота</p>
+                                        <p class="mt-1 break-all text-sm font-semibold text-slate-900">
+                                            {{ well.longitude|default:"—" }}
+                                        </p>
                                     </div>
                                 </div>
-                            </td>
 
-                            <td class="px-6 py-4 text-sm text-slate-600">
-                                {{ well.oil_company.name|default:"—" }}
-                            </td>
-
-                            <td class="px-6 py-4 text-sm text-slate-600">
-                                {{ well.type|default:"—" }}
-                            </td>
-
-                            <td class="px-6 py-4 text-sm text-slate-600">
-                                {{ well.max_drilling_depth|default:"—" }}
-                            </td>
-
-                            <td class="px-6 py-4 text-sm text-slate-600">
-                                {{ well.latitude|default:"—" }}
-                            </td>
-
-                            <td class="px-6 py-4 text-sm text-slate-600">
-                                {{ well.longitude|default:"—" }}
-                            </td>
-
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-2">
+                                <div class="mt-4 flex flex-col gap-2 sm:flex-row">
                                     <a
                                         href="{% url 'well_update' well.pk %}"
-                                        class="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                                        class="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:w-auto"
                                     >
                                         Редактировать
                                     </a>
 
                                     <a
                                         href="{% url 'well_delete' well.pk %}"
-                                        class="inline-flex items-center rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                                        class="inline-flex w-full items-center justify-center rounded-xl border border-rose-200 px-3 py-2.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 sm:w-auto"
                                     >
                                         Удалить
                                     </a>
                                 </div>
-                            </td>
-                        </tr>
-                    {% empty %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="hidden xl:block">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
                         <tr>
-                            <td colspan="7" class="px-6 py-10 text-center text-sm text-slate-500">
-                                Скважин пока нет.
-                            </td>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Название
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Компания
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Тип
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Глубина
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Широта
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Долгота
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Действия
+                            </th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+
+                    <tbody class="divide-y divide-slate-100">
+                        {% for well in wells %}
+                            <tr class="hover:bg-slate-50/80">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
+                                            {{ well.name|slice:":2"|upper }}
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-slate-900">{{ well.name }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td class="px-6 py-4 text-sm text-slate-600">
+                                    {{ well.oil_company.name|default:"—" }}
+                                </td>
+
+                                <td class="px-6 py-4 text-sm text-slate-600">
+                                    {{ well.type|default:"—" }}
+                                </td>
+
+                                <td class="px-6 py-4 text-sm text-slate-600">
+                                    {{ well.max_drilling_depth|default:"—" }}
+                                </td>
+
+                                <td class="px-6 py-4 text-sm text-slate-600">
+                                    {{ well.latitude|default:"—" }}
+                                </td>
+
+                                <td class="px-6 py-4 text-sm text-slate-600">
+                                    {{ well.longitude|default:"—" }}
+                                </td>
+
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <a
+                                            href="{% url 'well_update' well.pk %}"
+                                            class="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                                        >
+                                            Редактировать
+                                        </a>
+
+                                        <a
+                                            href="{% url 'well_delete' well.pk %}"
+                                            class="inline-flex items-center rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                                        >
+                                            Удалить
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="px-6 py-10 text-center text-sm text-slate-500">
+                                    Скважин пока нет.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
 
+        {% if not wells %}
+            <div class="px-4 py-10 text-center text-sm text-slate-500 sm:px-6 xl:hidden">
+                Скважин пока нет.
+            </div>
+        {% endif %}
+
         {% if is_paginated %}
-            <div class="flex flex-col gap-4 border-t border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-col gap-4 border-t border-slate-100 px-4 py-5 sm:px-6 sm:flex-row sm:items-center sm:justify-between">
                 <p class="text-sm text-slate-500">
                     Показаны записи {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ page_obj.paginator.count }}
                 </p>
 
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                     {% if page_obj.has_previous %}
                         <a
                             href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}"

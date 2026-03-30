@@ -4,8 +4,8 @@
 
 {% block content %}
 <div class="space-y-6">
-    <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex flex-col gap-4 border-b border-slate-100 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900">Суточные рапорты</h1>
                 <p class="mt-1 text-sm text-slate-500">Всего записей: {{ total_count }}</p>
@@ -13,14 +13,14 @@
 
             <a
                 href="{% url 'dailyproduction_create' %}"
-                class="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                class="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto"
             >
                 Добавить рапорт
             </a>
         </div>
 
-        <div class="border-b border-slate-100 px-6 py-5">
-            <form method="get" class="grid gap-4 xl:grid-cols-5">
+        <div class="border-b border-slate-100 px-4 py-5 sm:px-6">
+            <form method="get" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 <div>
                     <label for="company" class="mb-2 block text-sm font-medium text-slate-700">Компания</label>
                     <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
@@ -99,134 +99,230 @@
                     </div>
                 </div>
 
-                <div class="xl:col-span-5 flex flex-wrap items-center justify-end gap-3 pt-2">
+                <div class="flex flex-col gap-3 pt-2 sm:col-span-2 sm:flex-row sm:justify-end xl:col-span-5">
                     <a
                         href="{% url 'dailyproduction_list' %}"
-                        class="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
                     >
                         Сбросить
                     </a>
 
-                    <button type="submit" class="inline-flex items-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Применить</button>
+                    <button
+                        type="submit"
+                        class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
+                    >
+                        Применить
+                    </button>
                 </div>
             </form>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200">
-                <thead class="bg-slate-50">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Компания
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Скважина
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Дата
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Часы
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Жидкость
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Вода
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Плотность
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Нефть
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Действия
-                        </th>
-                    </tr>
-                </thead>
+        {% if reports %}
+            <div class="space-y-4 px-4 py-5 sm:px-6 xl:hidden">
+                {% for report in reports %}
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                        <div class="flex items-start gap-3 sm:gap-4">
+                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
+                                {{ report.well.name|slice:":2"|upper }}
+                            </div>
 
-                <tbody class="divide-y divide-slate-100">
-                    {% for report in reports %}
-                        <tr class="hover:bg-slate-50/80">
-                            <td class="px-6 py-4 text-sm text-slate-600">
-                                {{ report.well.oil_company.name|default:"—" }}
-                            </td>
+                            <div class="min-w-0 flex-1">
+                                <p class="break-words text-lg font-semibold leading-tight text-slate-900">
+                                    {{ report.well.name }}
+                                </p>
+                                <p class="mt-1 break-words text-sm text-slate-500">
+                                    {{ report.well.oil_company.name|default:"—" }}
+                                </p>
 
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
-                                        {{ report.well.name|slice:":2"|upper }}
+                                <div class="mt-4 rounded-xl bg-white p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-400">Дата</p>
+                                    <p class="mt-1 text-sm font-semibold leading-snug text-slate-900 break-words">
+                                        {{ report.date }}
+                                    </p>
+                                </div>
+
+                                <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div class="rounded-xl bg-white p-3">
+                                        <p class="text-xs uppercase tracking-wide text-slate-400">Часы</p>
+                                        <p class="mt-1 break-words text-sm font-semibold text-slate-900">
+                                            {{ report.work_time }}
+                                        </p>
                                     </div>
-                                    <div>
-                                        <p class="font-semibold text-slate-900">{{ report.well.name }}</p>
-                                        <p class="text-sm text-slate-500">{{ report.well.type|default:"Тип не указан" }}</p>
+
+                                    <div class="rounded-xl bg-white p-3">
+                                        <p class="text-xs uppercase tracking-wide text-slate-400">Жидкость</p>
+                                        <p class="mt-1 break-words text-sm font-semibold text-slate-900">
+                                            {{ report.liquid_debit }}
+                                        </p>
+                                    </div>
+
+                                    <div class="rounded-xl bg-white p-3">
+                                        <p class="text-xs uppercase tracking-wide text-slate-400">Вода</p>
+                                        <p class="mt-1 break-words text-sm font-semibold text-slate-900">
+                                            {{ report.water_cut }}
+                                        </p>
+                                    </div>
+
+                                    <div class="rounded-xl bg-white p-3">
+                                        <p class="text-xs uppercase tracking-wide text-slate-400">Плотность</p>
+                                        <p class="mt-1 break-words text-sm font-semibold text-slate-900">
+                                            {{ report.oil_density }}
+                                        </p>
+                                    </div>
+
+                                    <div class="rounded-xl bg-emerald-50 p-3 sm:col-span-2">
+                                        <p class="text-xs uppercase tracking-wide text-emerald-600">Нефть</p>
+                                        <p class="mt-1 break-all text-sm font-semibold text-emerald-700">
+                                            {{ report.calculated_oil }}
+                                        </p>
                                     </div>
                                 </div>
-                            </td>
 
-                            <td class="px-6 py-4 text-sm text-slate-600">
-                                {{ report.date }}
-                            </td>
-
-                            <td class="px-6 py-4 text-sm text-slate-600">
-                                {{ report.work_time }}
-                            </td>
-
-                            <td class="px-6 py-4 text-sm text-slate-600">
-                                {{ report.liquid_debit }}
-                            </td>
-
-                            <td class="px-6 py-4 text-sm text-slate-600">
-                                {{ report.water_cut }}
-                            </td>
-
-                            <td class="px-6 py-4 text-sm text-slate-600">
-                                {{ report.oil_density }}
-                            </td>
-
-                            <td class="px-6 py-4">
-                                <span class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-600">
-                                    {{ report.calculated_oil }}
-                                </span>
-                            </td>
-
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-2">
+                                <div class="mt-4 flex flex-col gap-2 sm:flex-row">
                                     <a
                                         href="{% url 'dailyproduction_update' report.pk %}"
-                                        class="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                                        class="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:w-auto"
                                     >
                                         Редактировать
                                     </a>
 
                                     <a
                                         href="{% url 'dailyproduction_delete' report.pk %}"
-                                        class="inline-flex items-center rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                                        class="inline-flex w-full items-center justify-center rounded-xl border border-rose-200 px-3 py-2.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 sm:w-auto"
                                     >
                                         Удалить
                                     </a>
                                 </div>
-                            </td>
-                        </tr>
-                    {% empty %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="hidden xl:block">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
                         <tr>
-                            <td colspan="9" class="px-6 py-10 text-center text-sm text-slate-500">
-                                Суточных рапортов пока нет.
-                            </td>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Компания
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Скважина
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Дата
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Часы
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Жидкость
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Вода
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Плотность
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Нефть
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Действия
+                            </th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+
+                    <tbody class="divide-y divide-slate-100">
+                        {% for report in reports %}
+                            <tr class="hover:bg-slate-50/80">
+                                <td class="px-6 py-4 text-sm text-slate-600">
+                                    {{ report.well.oil_company.name|default:"—" }}
+                                </td>
+
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
+                                            {{ report.well.name|slice:":2"|upper }}
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-slate-900">{{ report.well.name }}</p>
+                                            <p class="text-sm text-slate-500">{{ report.well.type|default:"Тип не указан" }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td class="px-6 py-4 text-sm text-slate-600">
+                                    {{ report.date }}
+                                </td>
+
+                                <td class="px-6 py-4 text-sm text-slate-600">
+                                    {{ report.work_time }}
+                                </td>
+
+                                <td class="px-6 py-4 text-sm text-slate-600">
+                                    {{ report.liquid_debit }}
+                                </td>
+
+                                <td class="px-6 py-4 text-sm text-slate-600">
+                                    {{ report.water_cut }}
+                                </td>
+
+                                <td class="px-6 py-4 text-sm text-slate-600">
+                                    {{ report.oil_density }}
+                                </td>
+
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-600">
+                                        {{ report.calculated_oil }}
+                                    </span>
+                                </td>
+
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <a
+                                            href="{% url 'dailyproduction_update' report.pk %}"
+                                            class="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                                        >
+                                            Редактировать
+                                        </a>
+
+                                        <a
+                                            href="{% url 'dailyproduction_delete' report.pk %}"
+                                            class="inline-flex items-center rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                                        >
+                                            Удалить
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="9" class="px-6 py-10 text-center text-sm text-slate-500">
+                                    Суточных рапортов пока нет.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
 
+        {% if not reports %}
+            <div class="px-4 py-10 text-center text-sm text-slate-500 sm:px-6 xl:hidden">
+                Суточных рапортов пока нет.
+            </div>
+        {% endif %}
+
         {% if is_paginated %}
-            <div class="flex flex-col gap-4 border-t border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-col gap-4 border-t border-slate-100 px-4 py-5 sm:px-6 sm:flex-row sm:items-center sm:justify-between">
                 <p class="text-sm text-slate-500">
                     Показаны записи {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ page_obj.paginator.count }}
                 </p>
 
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                     {% if page_obj.has_previous %}
                         <a
                             href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}"
