@@ -9,10 +9,19 @@ from .views import (
     WellCreateView,
     WellUpdateView,
     WellDeleteView,
+    DashboardView
 )
 
 
 urlpatterns = [
+    # Dashboard
+    path(
+        "dashboard/",
+        DashboardView.as_view(),
+        name="dashboard",
+    ),
+
+
     # ===================================================================
     # Маршруты для суточных рапортов по добыче (DailyProduction)
     # ===================================================================

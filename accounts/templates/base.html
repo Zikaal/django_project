@@ -37,6 +37,7 @@
           <a href="{% url 'company_list' %}" class="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100">Компании</a>
           <a href="{% url 'well_list' %}" class="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100">Скважины</a>
           <a href="{% url 'dailyproduction_list' %}" class="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100">Рапорты</a>
+          <a href="{% url 'dashboard' %}" class="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100">Dashboard</a>
           <a href="/admin/" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Админка</a>
           <form action="{% url 'logout' %}" method="post" class="inline">
             {% csrf_token %}
@@ -59,6 +60,7 @@
           <a href="{% url 'company_list' %}" class="rounded-xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100">Компании</a>
           <a href="{% url 'well_list' %}" class="rounded-xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100">Скважины</a>
           <a href="{% url 'dailyproduction_list' %}" class="rounded-xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100">Рапорты</a>
+          <a href="{% url 'dashboard' %}" class="rounded-xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100">Dashboard</a>
           <a href="/admin/" class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Админка</a>
           <form action="{% url 'logout' %}" method="post">
             {% csrf_token %}

@@ -1,9 +1,16 @@
+import json
+from decimal import Decimal
+
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Count, F, Sum, Value, DecimalField, ExpressionWrapper
+from django.db.models.functions import Coalesce
+from django.views.generic import TemplateView
 from django.urls import reverse_lazy
 from django.views.generic import ListView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
 from companies.models import OilCompany
+from accounts.models import Profile
 from .forms import DailyProductionForm, WellForm
 from .models import DailyProduction, Well
 
@@ -214,3 +221,109 @@ class DailyProductionDeleteView(LoginRequiredMixin, DeleteView):
     model = DailyProduction
     template_name = "productions/dailyproduction_confirm_delete.html"
     success_url = reverse_lazy("dailyproduction_list")
+
+class DashboardView(LoginRequiredMixin, TemplateView):
+    template_name = "productions/dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Формула добычи нефти:
+        # liquid_debit * (1 - water_cut / 100) * oil_density
+        oil_formula = ExpressionWrapper(
+            F("liquid_debit") * (
+                Value(Decimal("1.00")) - F("water_cut") / Value(Decimal("100.00"))
+            ) * F("oil_density"),
+            output_field=DecimalField(max_digits=14, decimal_places=4),
+        )
+
+        # -------------------------
+        # Верхние summary cards
+        # -------------------------
+        context["total_companies"] = OilCompany.objects.count()
+        context["total_wells"] = Well.objects.count()
+        context["total_users"] = Profile.objects.count()
+        context["total_reports"] = DailyProduction.objects.count()
+
+        # -------------------------
+        # 1. Line Chart
+        # Динамика добычи по датам
+        # -------------------------
+        production_by_date = (
+            DailyProduction.objects
+            .values("date")
+            .annotate(
+                total_oil=Coalesce(
+                    Sum(oil_formula),
+                    Decimal("0.00"),
+                    output_field=DecimalField(max_digits=14, decimal_places=4),
+                )
+            )
+            .order_by("date")
+        )
+
+        line_labels = [item["date"].strftime("%Y-%m-%d") for item in production_by_date]
+        line_data = [float(item["total_oil"]) for item in production_by_date]
+
+        # -------------------------
+        # 2. Bar Chart
+        # Сравнение скважин по объему добычи
+        # -------------------------
+        production_by_well = (
+            DailyProduction.objects
+            .values("well__name")
+            .annotate(
+                total_oil=Coalesce(
+                    Sum(oil_formula),
+                    Decimal("0.00"),
+                    output_field=DecimalField(max_digits=14, decimal_places=4),
+                )
+            )
+            .order_by("-total_oil", "well__name")[:10]
+        )
+
+        bar_labels = [item["well__name"] for item in production_by_well]
+        bar_data = [float(item["total_oil"]) for item in production_by_well]
+
+        # -------------------------
+        # 3. Pie Chart
+        # Распределение скважин по компаниям
+        # -------------------------
+        wells_by_company = (
+            OilCompany.objects
+            .annotate(wells_count=Count("wells"))
+            .order_by("name")
+        )
+
+        pie_labels = [company.name for company in wells_by_company]
+        pie_data = [company.wells_count for company in wells_by_company]
+
+        # -------------------------
+        # 4. Doughnut Chart
+        # Распределение сотрудников по компаниям
+        # -------------------------
+        users_by_company = (
+            OilCompany.objects
+            .annotate(users_count=Count("employees"))
+            .order_by("name")
+        )
+
+        doughnut_labels = [company.name for company in users_by_company]
+        doughnut_data = [company.users_count for company in users_by_company]
+
+        # -------------------------
+        # Передаем в template
+        # -------------------------
+        context["line_labels"] = json.dumps(line_labels, ensure_ascii=False)
+        context["line_data"] = json.dumps(line_data)
+
+        context["bar_labels"] = json.dumps(bar_labels, ensure_ascii=False)
+        context["bar_data"] = json.dumps(bar_data)
+
+        context["pie_labels"] = json.dumps(pie_labels, ensure_ascii=False)
+        context["pie_data"] = json.dumps(pie_data)
+
+        context["doughnut_labels"] = json.dumps(doughnut_labels, ensure_ascii=False)
+        context["doughnut_data"] = json.dumps(doughnut_data)
+
+        return context
