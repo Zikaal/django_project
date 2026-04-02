@@ -13,6 +13,125 @@
     </div>
   </section>
 
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <form method="get" class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
+      <!-- Companies filter -->
+      <div class="xl:col-span-2">
+        <label class="mb-2 block text-sm font-medium text-slate-700">
+          Компании
+        </label>
+
+        <div class="relative">
+          <button
+            type="button"
+            id="companyDropdownButton"
+            class="flex w-full items-center justify-between rounded-xl border border-slate-300 px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          >
+            <span id="companyDropdownText">
+              {% if selected_companies %}
+                Выбрано компаний: {{ selected_companies|length }}
+              {% else %}
+                Выбрать компании
+              {% endif %}
+            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          <div
+            id="companyDropdownPanel"
+            class="absolute left-0 right-0 z-30 mt-2 hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-xl"
+          >
+            <div class="mb-3 flex items-center justify-between gap-3">
+              <p class="text-sm font-semibold text-slate-800">Выбор компаний</p>
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  id="selectAllCompanies"
+                  class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Выбрать все
+                </button>
+                <button
+                  type="button"
+                  id="clearAllCompanies"
+                  class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Очистить
+                </button>
+              </div>
+            </div>
+
+            <div class="max-h-64 space-y-2 overflow-y-auto pr-1">
+              {% for company in companies %}
+                <label class="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-slate-50">
+                  <input
+                    type="checkbox"
+                    name="company"
+                    value="{{ company.id }}"
+                    class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    {% if company.id|stringformat:"s" in selected_companies %}checked{% endif %}
+                  >
+                  <span class="text-sm text-slate-700">{{ company.name }}</span>
+                </label>
+              {% endfor %}
+            </div>
+
+            <p class="mt-3 text-xs text-slate-500">
+              Отметь одну или несколько компаний, затем нажми «Применить».
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Date from -->
+      <div>
+        <label for="date_from" class="mb-2 block text-sm font-medium text-slate-700">
+          Дата с
+        </label>
+        <input
+          type="date"
+          id="date_from"
+          name="date_from"
+          value="{{ date_from }}"
+          class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+        >
+      </div>
+
+      <!-- Date to -->
+      <div>
+        <label for="date_to" class="mb-2 block text-sm font-medium text-slate-700">
+          Дата по
+        </label>
+        <input
+          type="date"
+          id="date_to"
+          name="date_to"
+          value="{{ date_to }}"
+          class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+        >
+      </div>
+
+      <!-- Actions -->
+      <div class="xl:col-span-4 flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <button
+          type="submit"
+          class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+        >
+          Применить
+        </button>
+
+        <a
+          href="{% url 'dashboard' %}"
+          class="rounded-xl border border-slate-300 px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          Сбросить
+        </a>
+      </div>
+    </form>
+  </section>
+
   <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <p class="text-sm font-medium text-slate-500">Компании</p>
@@ -36,14 +155,11 @@
   </section>
 
   <section class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-    <!-- Line Chart -->
     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div class="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold text-slate-900">Динамика добычи по датам</h2>
-          <p class="mt-1 text-sm text-slate-500">
-            Суммарный объем добычи нефти по дням
-          </p>
+          <p class="mt-1 text-sm text-slate-500">Суммарный объем добычи нефти по дням</p>
         </div>
         <button
           type="button"
@@ -58,14 +174,11 @@
       </div>
     </div>
 
-    <!-- Bar Chart -->
     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div class="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold text-slate-900">Сравнение скважин по добыче</h2>
-          <p class="mt-1 text-sm text-slate-500">
-            Топ скважин по суммарной добыче нефти
-          </p>
+          <p class="mt-1 text-sm text-slate-500">Топ скважин по суммарной добыче нефти</p>
         </div>
         <button
           type="button"
@@ -80,14 +193,11 @@
       </div>
     </div>
 
-    <!-- Pie Chart -->
     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div class="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold text-slate-900">Скважины по компаниям</h2>
-          <p class="mt-1 text-sm text-slate-500">
-            Распределение количества скважин между компаниями
-          </p>
+          <p class="mt-1 text-sm text-slate-500">Распределение количества скважин между компаниями</p>
         </div>
         <button
           type="button"
@@ -102,14 +212,11 @@
       </div>
     </div>
 
-    <!-- Doughnut Chart -->
     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div class="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold text-slate-900">Сотрудники по компаниям</h2>
-          <p class="mt-1 text-sm text-slate-500">
-            Распределение сотрудников по нефтяным компаниям
-          </p>
+          <p class="mt-1 text-sm text-slate-500">Распределение сотрудников по нефтяным компаниям</p>
         </div>
         <button
           type="button"
@@ -126,11 +233,7 @@
   </section>
 </div>
 
-<!-- Modal -->
-<div
-  id="chartModal"
-  class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/70 p-4"
->
+<div id="chartModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/70 p-4">
   <div class="flex h-[90vh] w-full max-w-6xl flex-col rounded-3xl bg-white shadow-2xl">
     <div class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
       <div>
@@ -280,10 +383,10 @@
     };
   }
 
-  const lineChart = new Chart(document.getElementById('lineChart'), buildLineConfig());
-  const barChart = new Chart(document.getElementById('barChart'), buildBarConfig());
-  const pieChart = new Chart(document.getElementById('pieChart'), buildPieConfig());
-  const doughnutChart = new Chart(document.getElementById('doughnutChart'), buildDoughnutConfig());
+  new Chart(document.getElementById('lineChart'), buildLineConfig());
+  new Chart(document.getElementById('barChart'), buildBarConfig());
+  new Chart(document.getElementById('pieChart'), buildPieConfig());
+  new Chart(document.getElementById('doughnutChart'), buildDoughnutConfig());
 
   const chartMeta = {
     line: {
@@ -355,5 +458,63 @@
       closeChartModal();
     }
   });
+
+  const companyDropdownButton = document.getElementById('companyDropdownButton');
+  const companyDropdownPanel = document.getElementById('companyDropdownPanel');
+  const companyDropdownText = document.getElementById('companyDropdownText');
+  const companyCheckboxes = document.querySelectorAll('input[name="company"]');
+  const selectAllCompanies = document.getElementById('selectAllCompanies');
+  const clearAllCompanies = document.getElementById('clearAllCompanies');
+
+  function updateCompanyDropdownText() {
+    const checkedCount = document.querySelectorAll('input[name="company"]:checked').length;
+
+    if (checkedCount === 0) {
+      companyDropdownText.textContent = 'Выбрать компании';
+    } else if (checkedCount === 1) {
+      companyDropdownText.textContent = 'Выбрана 1 компания';
+    } else {
+      companyDropdownText.textContent = `Выбрано компаний: ${checkedCount}`;
+    }
+  }
+
+  if (companyDropdownButton && companyDropdownPanel) {
+    companyDropdownButton.addEventListener('click', function () {
+      companyDropdownPanel.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', function (event) {
+      if (
+        !companyDropdownButton.contains(event.target) &&
+        !companyDropdownPanel.contains(event.target)
+      ) {
+        companyDropdownPanel.classList.add('hidden');
+      }
+    });
+  }
+
+  companyCheckboxes.forEach((checkbox) => {
+    checkbox.addEventListener('change', updateCompanyDropdownText);
+  });
+
+  if (selectAllCompanies) {
+    selectAllCompanies.addEventListener('click', function () {
+      companyCheckboxes.forEach((checkbox) => {
+        checkbox.checked = true;
+      });
+      updateCompanyDropdownText();
+    });
+  }
+
+  if (clearAllCompanies) {
+    clearAllCompanies.addEventListener('click', function () {
+      companyCheckboxes.forEach((checkbox) => {
+        checkbox.checked = false;
+      });
+      updateCompanyDropdownText();
+    });
+  }
+
+  updateCompanyDropdownText();
 </script>
 {% endblock %}

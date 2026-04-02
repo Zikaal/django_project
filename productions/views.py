@@ -228,34 +228,53 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Формула добычи нефти:
-        # liquid_debit * (1 - water_cut / 100) * oil_density
+        company_ids = self.request.GET.getlist("company")
+        company_ids = [company_id for company_id in company_ids if company_id]
+
+        date_from = self.request.GET.get("date_from", "")
+        date_to = self.request.GET.get("date_to", "")
+
         oil_formula = ExpressionWrapper(
             F("liquid_debit") * (
-                Value(Decimal("1.00")) - F("water_cut") / Value(Decimal("100.00"))
+                Value(Decimal("1.0")) - F("water_cut") / Value(Decimal("100.0"))
             ) * F("oil_density"),
             output_field=DecimalField(max_digits=14, decimal_places=4),
         )
 
-        # -------------------------
-        # Верхние summary cards
-        # -------------------------
-        context["total_companies"] = OilCompany.objects.count()
-        context["total_wells"] = Well.objects.count()
-        context["total_users"] = Profile.objects.count()
-        context["total_reports"] = DailyProduction.objects.count()
+        reports_qs = DailyProduction.objects.select_related("well", "well__oil_company")
+        wells_qs = Well.objects.select_related("oil_company")
+        profiles_qs = Profile.objects.select_related("oil_company")
+        companies_qs = OilCompany.objects.all()
 
-        # -------------------------
-        # 1. Line Chart
-        # Динамика добычи по датам
-        # -------------------------
+        if company_ids:
+            reports_qs = reports_qs.filter(well__oil_company_id__in=company_ids)
+            wells_qs = wells_qs.filter(oil_company_id__in=company_ids)
+            profiles_qs = profiles_qs.filter(oil_company_id__in=company_ids)
+            companies_qs = companies_qs.filter(id__in=company_ids)
+
+        if date_from:
+            reports_qs = reports_qs.filter(date__gte=date_from)
+
+        if date_to:
+            reports_qs = reports_qs.filter(date__lte=date_to)
+
+        context["companies"] = OilCompany.objects.order_by("name")
+        context["selected_companies"] = company_ids
+        context["date_from"] = date_from
+        context["date_to"] = date_to
+
+        context["total_companies"] = companies_qs.count()
+        context["total_wells"] = wells_qs.count()
+        context["total_users"] = profiles_qs.count()
+        context["total_reports"] = reports_qs.count()
+
         production_by_date = (
-            DailyProduction.objects
+            reports_qs
             .values("date")
             .annotate(
                 total_oil=Coalesce(
                     Sum(oil_formula),
-                    Decimal("0.00"),
+                    0,
                     output_field=DecimalField(max_digits=14, decimal_places=4),
                 )
             )
@@ -265,17 +284,13 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         line_labels = [item["date"].strftime("%Y-%m-%d") for item in production_by_date]
         line_data = [float(item["total_oil"]) for item in production_by_date]
 
-        # -------------------------
-        # 2. Bar Chart
-        # Сравнение скважин по объему добычи
-        # -------------------------
         production_by_well = (
-            DailyProduction.objects
+            reports_qs
             .values("well__name")
             .annotate(
                 total_oil=Coalesce(
                     Sum(oil_formula),
-                    Decimal("0.00"),
+                    0,
                     output_field=DecimalField(max_digits=14, decimal_places=4),
                 )
             )
@@ -285,35 +300,26 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         bar_labels = [item["well__name"] for item in production_by_well]
         bar_data = [float(item["total_oil"]) for item in production_by_well]
 
-        # -------------------------
-        # 3. Pie Chart
-        # Распределение скважин по компаниям
-        # -------------------------
         wells_by_company = (
-            OilCompany.objects
-            .annotate(wells_count=Count("wells"))
-            .order_by("name")
+            wells_qs
+            .values("oil_company__name")
+            .annotate(wells_count=Count("id"))
+            .order_by("oil_company__name")
         )
 
-        pie_labels = [company.name for company in wells_by_company]
-        pie_data = [company.wells_count for company in wells_by_company]
+        pie_labels = [item["oil_company__name"] for item in wells_by_company]
+        pie_data = [item["wells_count"] for item in wells_by_company]
 
-        # -------------------------
-        # 4. Doughnut Chart
-        # Распределение сотрудников по компаниям
-        # -------------------------
         users_by_company = (
-            OilCompany.objects
-            .annotate(users_count=Count("employees"))
-            .order_by("name")
+            profiles_qs
+            .values("oil_company__name")
+            .annotate(users_count=Count("id"))
+            .order_by("oil_company__name")
         )
 
-        doughnut_labels = [company.name for company in users_by_company]
-        doughnut_data = [company.users_count for company in users_by_company]
+        doughnut_labels = [item["oil_company__name"] for item in users_by_company]
+        doughnut_data = [item["users_count"] for item in users_by_company]
 
-        # -------------------------
-        # Передаем в template
-        # -------------------------
         context["line_labels"] = json.dumps(line_labels, ensure_ascii=False)
         context["line_data"] = json.dumps(line_data)
 
