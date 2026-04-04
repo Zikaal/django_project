@@ -1,0 +1,103 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: django-project-app
+    restart: unless-stopped
+    working_dir: /var/www
+    ports:
+      - "8006:8000"
+    volumes:
+      - ./:/var/www:cached
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - django-project-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: django-project-nginx
+    restart: unless-stopped
+    ports:
+      - "8086:80"
+    volumes:
+      - ./:/var/www:cached
+      - ./docker-compose/nginx:/etc/nginx/conf.d/
+    networks:
+      - django-project-network
+    depends_on:
+      - app
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: django-project-frontend
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www:cached
+    command: sh -c "python manage.py tailwind install --no-input && python manage.py tailwind start"
+    networks:
+      - django-project-network
+    depends_on:
+      - app
+
+  redis:
+    image: redis:alpine
+    container_name: django-project-redis
+    restart: unless-stopped
+    networks:
+      - django-project-network
+
+  db:
+    image: mysql:8.3
+    container_name: django-project-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-django_project}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+    ports:
+      - "3308:3306"
+    volumes:
+      - django-project-db-data:/var/lib/mysql
+    networks:
+      - django-project-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  adminer:
+    image: adminer
+    container_name: django-project-adminer
+    restart: unless-stopped
+    ports:
+      - "8084:8080"
+    networks:
+      - django-project-network
+    depends_on:
+      db:
+        condition: service_healthy
+
+  mailpit:
+    image: axllent/mailpit
+    container_name: django-project-mailpit
+    restart: unless-stopped
+    ports:
+      - "8027:8025" # Web UI
+      - "1027:1025" # SMTP
+    networks:
+      - django-project-network
+
+networks:
+  django-project-network:
+    driver: bridge
+
+volumes:
+  django-project-db-data:
+    driver: local

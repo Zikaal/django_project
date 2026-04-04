@@ -1,0 +1,37 @@
+[tool.ruff]
+# Максимальная длина строки (120 символов — современный стандарт)
+line-length = 120
+# Директории, которые Ruff должен полностью игнорировать
+exclude = [
+    ".git",
+    "__pycache__",
+    "venv",
+    ".venv",
+    "migrations",
+    "node_modules",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort (АВТОМАТИЧЕСКАЯ СОРТИРОВКА ИМПОРТОВ!)
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade (Обновление синтаксиса, например Type Hints)
+]
+ignore = [
+    "E501", # Слишком длинные строки (исправлять будет сам formatter)
+    "B008", # Не вызывать функции в аргументах по умолчанию (Django использует это повсеместно)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+# Разделяем сторонние библиотеки и локальные файлы проекта при импорте
+known-first-party = ["config", "accounts", "productions", "companies", "theme"]

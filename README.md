@@ -96,7 +96,9 @@ base_project/
 
 ---
 
-## Установка и запуск проекта
+## Установка и запуск проекта (Docker)
+
+Проект полностью настроен для работы в Docker. Для установки и запуска не требуется локальная установка Python или Node.js.
 
 ### 1. Клонировать репозиторий
 ```bash
@@ -104,42 +106,31 @@ git clone https://github.com/USERNAME/REPOSITORY_NAME.git
 cd REPOSITORY_NAME
 ```
 
-### 2. Создать виртуальное окружение
+### 2. Запуск одной командой
+В проекте настроен `Makefile`, который автоматически создаст ключи конфигурации, настроит базу данных (MySQL), выполнит миграции базы данных и запустит приложение:
+
 ```bash
-python -m venv venv
+make up
 ```
 
-### 3. Активировать виртуальное окружение
+Дождитесь сообщения об успешном запуске (это может занять несколько минут при первой сборке).
 
-#### Windows
+### 3. Доступ к сервисам
+После запуска проект будет доступен по следующим адресам:
+- **Веб-приложение (Nginx):** http://localhost:8086
+- **Админка (Django Admin):** http://localhost:8086/admin/
+- **Управление БД (Adminer):** http://localhost:8084
+- **Почтовый сервер (Mailpit):** http://localhost:8027
+
+### 4. Создание суперпользователя (Админа)
+Для входа в панель администратора выполните:
 ```bash
-venv\Scripts\activate
+make superuser
 ```
 
-#### macOS / Linux
+### 5. Остановка проекта
 ```bash
-source venv/bin/activate
-```
-
-### 4. Установить зависимости
-```bash
-pip install django
-```
-
-### 5. Миграции
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
-
-### 6. Создать суперпользователя
-```bash
-python manage.py createsuperuser
-```
-
-### 7. Запуск сервера
-```bash
-python manage.py runserver
+make down
 ```
 
 ---
