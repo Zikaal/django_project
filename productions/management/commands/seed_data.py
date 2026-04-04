@@ -59,12 +59,14 @@ class Command(BaseCommand):
                     last_name=fake.last_name(),
                     password=default_password
                 )
-                Profile.objects.create(
+                Profile.objects.update_or_create(
                     user=user,
-                    oil_company=company,
-                    bio=fake.text(max_nb_chars=100),
-                    department=random.choice(departments),
-                    phone_number=fake.phone_number()
+                    defaults={
+                        "oil_company": company,
+                        "bio": fake.text(max_nb_chars=100),
+                        "department": random.choice(departments),
+                        "phone_number": fake.phone_number()
+                    }
                 )
                 total_users += 1
 
