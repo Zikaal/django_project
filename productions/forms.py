@@ -1,4 +1,5 @@
 from django import forms
+
 from .models import DailyProduction, Well
 
 
@@ -14,13 +15,13 @@ class DailyProductionForm(forms.ModelForm):
     class Meta:
         """
         Метаданные формы ModelForm.
-        
         Определяет:
         - Связанную модель
         - Поля, которые будут отображаться в форме
         - Виджеты для полей
         - Сообщения об ошибках для каждого поля
         """
+
         model = DailyProduction
         fields = [
             "well",
@@ -88,9 +89,7 @@ class DailyProductionForm(forms.ModelForm):
 
             # Если такая запись уже существует — выбрасываем ошибку
             if qs.exists():
-                raise forms.ValidationError(
-                    "Для этой скважины уже есть запись на эту дату."
-                )
+                raise forms.ValidationError("Для этой скважины уже есть запись на эту дату.")
 
         return cleaned_data
 
@@ -105,11 +104,11 @@ class WellForm(forms.ModelForm):
     class Meta:
         """
         Метаданные формы ModelForm для модели Well.
-        
         Определяет:
         - Связанную модель
         - Поля, которые будут отображаться в форме
         """
+
         model = Well
         fields = [
             "name",

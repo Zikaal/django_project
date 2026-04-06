@@ -3,10 +3,11 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView, TemplateView
+from django.views.generic import CreateView, DeleteView, ListView, TemplateView
 
 from companies.models import OilCompany
-from .forms import UserCreateForm, UserUpdateForm, ProfileForm
+
+from .forms import ProfileForm, UserCreateForm, UserUpdateForm
 from .models import Profile
 
 User = get_user_model()
@@ -139,7 +140,7 @@ def user_update_view(request, pk):
         {
             "user_form": user_form,
             "profile_form": profile_form,
-            "edited_user": user,        # передаём для отображения информации в шаблоне
+            "edited_user": user,  # передаём для отображения информации в шаблоне
         },
     )
 
@@ -155,8 +156,10 @@ class UserDeleteView(LoginRequiredMixin, DeleteView):
     template_name = "accounts/user_confirm_delete.html"
     success_url = reverse_lazy("user_list")
 
+
 class ProfileDetailView(LoginRequiredMixin, TemplateView):
     template_name = "accounts/profile.html"
+
 
 def profile_update_view(request):
     user = request.user

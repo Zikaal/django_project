@@ -10,16 +10,9 @@ class OilCompany(models.Model):
     """
 
     name = models.CharField(
-        "Название компании",
-        max_length=255,
-        unique=True,
-        help_text="Уникальное название нефтяной компании"
+        "Название компании", max_length=255, unique=True, help_text="Уникальное название нефтяной компании"
     )
-    region = models.CharField(
-        "Регион",
-        max_length=255,
-        help_text="Регион деятельности компании"
-    )
+    region = models.CharField("Регион", max_length=255, help_text="Регион деятельности компании")
 
     def __str__(self):
         """
@@ -33,6 +26,7 @@ class OilCompany(models.Model):
         """
         Метаданные модели.
         """
+
         verbose_name = "Нефтяная компания"
         verbose_name_plural = "Нефтяные компании"
-        ordering = ['name']          # Сортировка по умолчанию в QuerySet'ах
+        ordering = ["name"]  # Сортировка по умолчанию в QuerySet'ах

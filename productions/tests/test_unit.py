@@ -6,7 +6,7 @@ from django.test import TestCase
 
 from companies.models import OilCompany
 from productions.forms import DailyProductionForm
-from productions.models import Well, DailyProduction
+from productions.models import DailyProduction, Well
 
 
 class DailyProductionUnitTests(TestCase):
@@ -77,14 +77,16 @@ class DailyProductionUnitTests(TestCase):
             oil_density=Decimal("0.82"),
         )
 
-        form = DailyProductionForm(data={
-            "well": self.well.id,
-            "date": "2026-04-02",
-            "work_time": "10.00",
-            "liquid_debit": "70.00",
-            "water_cut": "10.00",
-            "oil_density": "0.80",
-        })
+        form = DailyProductionForm(
+            data={
+                "well": self.well.id,
+                "date": "2026-04-02",
+                "work_time": "10.00",
+                "liquid_debit": "70.00",
+                "water_cut": "10.00",
+                "oil_density": "0.80",
+            }
+        )
 
         self.assertFalse(form.is_valid())
         self.assertIn("__all__", form.errors)

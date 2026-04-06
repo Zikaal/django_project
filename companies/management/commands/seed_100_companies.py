@@ -1,6 +1,8 @@
-from django.core.management.base import BaseCommand
-from companies.models import OilCompany
 import random
+
+from django.core.management.base import BaseCommand
+
+from companies.models import OilCompany
 
 
 class Command(BaseCommand):
@@ -22,9 +24,7 @@ class Command(BaseCommand):
 
             _, created = OilCompany.objects.get_or_create(
                 name=company_name,
-                defaults={
-                    "region": random.choice(regions)
-                },
+                defaults={"region": random.choice(regions)},
             )
 
             if created:

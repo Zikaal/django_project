@@ -1,7 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.views.generic import ListView
-from django.views.generic.edit import CreateView, UpdateView, DeleteView
+from django.views.generic.edit import CreateView, DeleteView, UpdateView
 
 from .models import OilCompany
 
@@ -20,8 +20,8 @@ class OilCompanyListView(LoginRequiredMixin, ListView):
 
     model = OilCompany
     template_name = "companies/company_list.html"
-    context_object_name = "companies"   # имя переменной в шаблоне
-    paginate_by = 20                    # количество компаний на одной странице
+    context_object_name = "companies"  # имя переменной в шаблоне
+    paginate_by = 20  # количество компаний на одной странице
 
     def get_queryset(self):
         """
@@ -68,7 +68,7 @@ class OilCompanyListView(LoginRequiredMixin, ListView):
 
         context["sort"] = self.request.GET.get("sort", "name")
         context["region"] = self.request.GET.get("region", "")
-        
+
         # Общее количество компаний (используется для отображения статистики)
         context["total_count"] = OilCompany.objects.count()
 

@@ -1,6 +1,8 @@
 from decimal import Decimal
+
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
+
 from companies.models import OilCompany
 
 
@@ -137,6 +139,7 @@ class DailyProduction(models.Model):
         - Уникальное ограничение: одна запись на скважину в сутки
         - Человеко-читаемые названия в админке и формах
         """
+
         constraints = [
             models.UniqueConstraint(
                 fields=["well", "date"],

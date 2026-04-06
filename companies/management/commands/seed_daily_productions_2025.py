@@ -1,10 +1,10 @@
-from decimal import Decimal
 import random
 from datetime import date, timedelta
+from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 
-from productions.models import Well, DailyProduction
+from productions.models import DailyProduction, Well
 
 
 class Command(BaseCommand):
@@ -41,8 +41,4 @@ class Command(BaseCommand):
 
                 current_date += timedelta(days=1)
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Готово. Создано записей DailyProduction: {total_created}"
-            )
-        )
+        self.stdout.write(self.style.SUCCESS(f"Готово. Создано записей DailyProduction: {total_created}"))

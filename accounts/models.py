@@ -1,5 +1,5 @@
-from django.db import models
 from django.conf import settings
+from django.db import models
 
 from companies.models import OilCompany
 
@@ -63,6 +63,7 @@ class Profile(models.Model):
         """
         Метаданные модели Profile.
         """
+
         verbose_name = "Профиль пользователя"
         verbose_name_plural = "Профили пользователей"
-        ordering = ['user__username']   # Сортировка по умолчанию по имени пользователя
+        ordering = ["user__username"]  # Сортировка по умолчанию по имени пользователя

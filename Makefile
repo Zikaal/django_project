@@ -1,7 +1,7 @@
 .PHONY: build up down restart logs app frontend migrate clear superuser help
 
 # Переменные по умолчанию
-DOCKER_COMPOSE = docker-compose
+DOCKER_COMPOSE = docker compose
 
 help: ## Показать список доступных команд
 	@echo "Доступные команды:"
@@ -16,7 +16,7 @@ up: ## Запуск всех контейнеров в фоновом режим
 	@echo "✅ Контейнеры запущены! Начинается фоновая инициализация (БД, зависимости)..."
 	@echo "⏳ Транслируем логи в консоль до завершения запуска:"
 	@echo "-------------------------------------------------------------------"
-	@$(DOCKER_COMPOSE) logs -f app | awk '{ print } /Backend App Service is ready and running!/ { exit }'
+	@$(DOCKER_COMPOSE) logs --tail=200 -f app 2>&1 | grep -m1 "Backend App Service is ready and running!" >/dev/null || true
 	@echo "-------------------------------------------------------------------"
 	@echo "🎉 Запуск прошел успешно! Терминал свободен."
 	@echo "🌍 Веб Приложение (Nginx): http://localhost:8086"

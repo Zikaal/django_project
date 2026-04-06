@@ -6,8 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from companies.models import OilCompany
-from productions.models import Well, DailyProduction
-
+from productions.models import DailyProduction, Well
 
 User = get_user_model()
 
@@ -32,14 +31,17 @@ class WellFeatureTests(TestCase):
     def test_authenticated_user_can_create_well(self):
         self.client.force_login(self.user)
 
-        response = self.client.post(reverse("well_create"), data={
-            "name": "Well-500",
-            "oil_company": self.company.id,
-            "type": "Exploration",
-            "max_drilling_depth": 4200,
-            "latitude": "43.250000",
-            "longitude": "76.950000",
-        })
+        response = self.client.post(
+            reverse("well_create"),
+            data={
+                "name": "Well-500",
+                "oil_company": self.company.id,
+                "type": "Exploration",
+                "max_drilling_depth": 4200,
+                "latitude": "43.250000",
+                "longitude": "76.950000",
+            },
+        )
 
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse("well_list"))
@@ -68,14 +70,17 @@ class DailyProductionFeatureTests(TestCase):
     def test_authenticated_user_can_create_daily_production(self):
         self.client.force_login(self.user)
 
-        response = self.client.post(reverse("dailyproduction_create"), data={
-            "well": self.well.id,
-            "date": "2026-04-02",
-            "work_time": "12.00",
-            "liquid_debit": "90.00",
-            "water_cut": "25.00",
-            "oil_density": "0.84",
-        })
+        response = self.client.post(
+            reverse("dailyproduction_create"),
+            data={
+                "well": self.well.id,
+                "date": "2026-04-02",
+                "work_time": "12.00",
+                "liquid_debit": "90.00",
+                "water_cut": "25.00",
+                "oil_density": "0.84",
+            },
+        )
 
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse("dailyproduction_list"))
@@ -98,14 +103,17 @@ class DailyProductionFeatureTests(TestCase):
 
         self.client.force_login(self.user)
 
-        response = self.client.post(reverse("dailyproduction_create"), data={
-            "well": self.well.id,
-            "date": "2026-04-02",
-            "work_time": "11.00",
-            "liquid_debit": "75.00",
-            "water_cut": "20.00",
-            "oil_density": "0.82",
-        })
+        response = self.client.post(
+            reverse("dailyproduction_create"),
+            data={
+                "well": self.well.id,
+                "date": "2026-04-02",
+                "work_time": "11.00",
+                "liquid_debit": "75.00",
+                "water_cut": "20.00",
+                "oil_density": "0.82",
+            },
+        )
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Для этой скважины уже есть запись на эту дату.")

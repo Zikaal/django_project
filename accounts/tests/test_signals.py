@@ -4,7 +4,6 @@ from django.test import TestCase
 from accounts.models import Profile
 from companies.models import OilCompany
 
-
 User = get_user_model()
 
 

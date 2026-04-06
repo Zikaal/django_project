@@ -2,15 +2,15 @@ import json
 from decimal import Decimal
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Count, F, Sum, Value, DecimalField, ExpressionWrapper
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum, Value
 from django.db.models.functions import Coalesce
-from django.views.generic import TemplateView
 from django.urls import reverse_lazy
-from django.views.generic import ListView
-from django.views.generic.edit import CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, TemplateView
+from django.views.generic.edit import CreateView, DeleteView, UpdateView
 
-from companies.models import OilCompany
 from accounts.models import Profile
+from companies.models import OilCompany
+
 from .forms import DailyProductionForm, WellForm
 from .models import DailyProduction, Well
 
@@ -122,6 +122,7 @@ class WellDeleteView(LoginRequiredMixin, DeleteView):
 # Ниже идут представления для DailyProduction
 # ===========================================================================
 
+
 class DailyProductionListView(LoginRequiredMixin, ListView):
     """
     Представление для отображения списка ежедневных отчётов по добыче нефти.
@@ -222,6 +223,7 @@ class DailyProductionDeleteView(LoginRequiredMixin, DeleteView):
     template_name = "productions/dailyproduction_confirm_delete.html"
     success_url = reverse_lazy("dailyproduction_list")
 
+
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "productions/dashboard.html"
 
@@ -235,9 +237,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         date_to = self.request.GET.get("date_to", "")
 
         oil_formula = ExpressionWrapper(
-            F("liquid_debit") * (
-                Value(Decimal("1.0")) - F("water_cut") / Value(Decimal("100.0"))
-            ) * F("oil_density"),
+            F("liquid_debit") * (Value(Decimal("1.0")) - F("water_cut") / Value(Decimal("100.0"))) * F("oil_density"),
             output_field=DecimalField(max_digits=14, decimal_places=4),
         )
 
@@ -269,8 +269,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context["total_reports"] = reports_qs.count()
 
         production_by_date = (
-            reports_qs
-            .values("date")
+            reports_qs.values("date")
             .annotate(
                 total_oil=Coalesce(
                     Sum(oil_formula),
@@ -285,8 +284,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         line_data = [float(item["total_oil"]) for item in production_by_date]
 
         production_by_well = (
-            reports_qs
-            .values("well__name")
+            reports_qs.values("well__name")
             .annotate(
                 total_oil=Coalesce(
                     Sum(oil_formula),
@@ -301,20 +299,14 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         bar_data = [float(item["total_oil"]) for item in production_by_well]
 
         wells_by_company = (
-            wells_qs
-            .values("oil_company__name")
-            .annotate(wells_count=Count("id"))
-            .order_by("oil_company__name")
+            wells_qs.values("oil_company__name").annotate(wells_count=Count("id")).order_by("oil_company__name")
         )
 
         pie_labels = [item["oil_company__name"] for item in wells_by_company]
         pie_data = [item["wells_count"] for item in wells_by_company]
 
         users_by_company = (
-            profiles_qs
-            .values("oil_company__name")
-            .annotate(users_count=Count("id"))
-            .order_by("oil_company__name")
+            profiles_qs.values("oil_company__name").annotate(users_count=Count("id")).order_by("oil_company__name")
         )
 
         doughnut_labels = [item["oil_company__name"] for item in users_by_company]

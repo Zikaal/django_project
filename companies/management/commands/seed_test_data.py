@@ -1,8 +1,8 @@
-from decimal import Decimal
 import random
+from decimal import Decimal
 
-from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand
 
 from accounts.models import Profile
 from companies.models import OilCompany
@@ -39,13 +39,29 @@ class Command(BaseCommand):
         ]
 
         first_names = [
-            "Азамат", "Нуржан", "Ерлан", "Данияр", "Марат",
-            "Алия", "Айгерим", "Жанар", "Инкар", "Асель",
+            "Азамат",
+            "Нуржан",
+            "Ерлан",
+            "Данияр",
+            "Марат",
+            "Алия",
+            "Айгерим",
+            "Жанар",
+            "Инкар",
+            "Асель",
         ]
 
         last_names = [
-            "Нурбеков", "Сериков", "Касымов", "Тлеубаев", "Омаров",
-            "Ахметова", "Садыкова", "Ибрагимова", "Жумагалиева", "Каримова",
+            "Нурбеков",
+            "Сериков",
+            "Касымов",
+            "Тлеубаев",
+            "Омаров",
+            "Ахметова",
+            "Садыкова",
+            "Ибрагимова",
+            "Жумагалиева",
+            "Каримова",
         ]
 
         departments = [
@@ -78,7 +94,7 @@ class Command(BaseCommand):
             well_count = random.randint(3, 5)
 
             for i in range(1, user_count + 1):
-                username = f'{company_data["code"]}_user_{i}'
+                username = f"{company_data['code']}_user_{i}"
                 email = f"{username}@example.com"
 
                 user, user_created = User.objects.get_or_create(
@@ -107,7 +123,7 @@ class Command(BaseCommand):
                 profile.save()
 
             for i in range(1, well_count + 1):
-                well_name = f'{company_data["code"].upper()}-{i:03d}'
+                well_name = f"{company_data['code'].upper()}-{i:03d}"
 
                 _, well_created = Well.objects.get_or_create(
                     name=well_name,
@@ -126,4 +142,4 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Тестовые данные успешно созданы."))
         self.stdout.write(self.style.SUCCESS(f"Новых пользователей создано: {total_users}"))
         self.stdout.write(self.style.SUCCESS(f"Новых скважин создано: {total_wells}"))
-        self.stdout.write(self.style.WARNING(f"Пароль для всех новых пользователей: {default_password}"))  
+        self.stdout.write(self.style.WARNING(f"Пароль для всех новых пользователей: {default_password}"))

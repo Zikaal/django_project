@@ -16,16 +16,8 @@ class UserCreateForm(forms.ModelForm):
     - Переопределяет методы clean() и save() для корректной обработки пароля и профиля
     """
 
-    password1 = forms.CharField(
-        label="Пароль",
-        widget=forms.PasswordInput,
-        help_text="Введите пароль"
-    )
-    password2 = forms.CharField(
-        label="Подтверждение пароля",
-        widget=forms.PasswordInput,
-        help_text="Повторите пароль"
-    )
+    password1 = forms.CharField(label="Пароль", widget=forms.PasswordInput, help_text="Введите пароль")
+    password2 = forms.CharField(label="Подтверждение пароля", widget=forms.PasswordInput, help_text="Повторите пароль")
 
     # Поля, которые будут сохранены в модель Profile
     oil_company = forms.ModelChoiceField(
@@ -33,21 +25,9 @@ class UserCreateForm(forms.ModelForm):
         label="Нефтяная компания",
         required=True,
     )
-    department = forms.CharField(
-        label="Отдел",
-        max_length=150,
-        required=False
-    )
-    phone_number = forms.CharField(
-        label="Телефон",
-        max_length=30,
-        required=False
-    )
-    bio = forms.CharField(
-        label="О себе",
-        required=False,
-        widget=forms.Textarea
-    )
+    department = forms.CharField(label="Отдел", max_length=150, required=False)
+    phone_number = forms.CharField(label="Телефон", max_length=30, required=False)
+    bio = forms.CharField(label="О себе", required=False, widget=forms.Textarea)
 
     class Meta:
         model = User
@@ -117,5 +97,5 @@ class ProfileForm(forms.ModelForm):
         model = Profile
         fields = ["oil_company", "department", "phone_number", "bio"]
         widgets = {
-            "bio": forms.Textarea(attrs={"rows":5}),
+            "bio": forms.Textarea(attrs={"rows": 5}),
         }
