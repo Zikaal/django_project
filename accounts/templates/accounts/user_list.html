@@ -69,9 +69,17 @@
       {% for user_obj in users %}
         <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
           <div class="flex items-start gap-3 sm:gap-4">
-            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700">
-              {{ user_obj.username|slice:":2"|upper }}
-            </div>
+            {% if user_obj.profile.avatar %}
+              <img
+                src="{{ user_obj.profile.avatar.url }}"
+                alt="Аватар"
+                class="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-slate-200"
+              >
+            {% else %}
+              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700">
+                {{ user_obj.username|slice:":2"|upper }}
+              </div>
+            {% endif %}
 
             <div class="min-w-0 flex-1">
               <p class="break-words text-lg font-semibold leading-tight text-slate-900">
@@ -152,9 +160,17 @@
           <tr class="hover:bg-slate-50/80">
             <td class="px-6 py-4">
               <div class="flex items-center gap-3">
-                <div class="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700">
-                  {{ user_obj.username|slice:":2"|upper }}
-                </div>
+                {% if user_obj.profile.avatar %}
+                  <img
+                    src="{{ user_obj.profile.avatar.url }}"
+                    alt="Аватар"
+                    class="h-11 w-11 rounded-full object-cover ring-2 ring-slate-200"
+                  >
+                {% else %}
+                  <div class="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700">
+                    {{ user_obj.username|slice:":2"|upper }}
+                  </div>
+                {% endif %}
                 <div>
                   <p class="font-semibold text-slate-900">{{ user_obj.get_full_name|default:user_obj.username }}</p>
                   <p class="text-sm text-slate-500">@{{ user_obj.username }}</p>

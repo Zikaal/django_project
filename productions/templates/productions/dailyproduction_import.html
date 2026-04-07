@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto p-6">
+  <h1 class="text-2xl font-bold mb-4">Импорт рапортов из Excel</h1>
+
+  <form method="post" enctype="multipart/form-data" class="space-y-4 bg-white p-6 rounded shadow">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button
+                        type="submit"
+                        class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
+                    >
+      Загрузить
+    </button>
+  </form>
+
+  {% if import_result %}
+    <div class="mt-6 bg-gray-50 p-4 rounded border">
+      <h2 class="text-lg font-semibold mb-3">Результат импорта</h2>
+
+      <p><strong>Импортировано:</strong> {{ import_result.created_count }}</p>
+      <p><strong>Пропущено пустых строк:</strong> {{ import_result.skipped_count }}</p>
+      <p><strong>Ошибок:</strong> {{ import_result.errors|length }}</p>
+
+      {% if import_result.errors %}
+        <div class="mt-4">
+          <h3 class="font-semibold text-red-600 mb-2">Ошибки:</h3>
+          <ul class="list-disc list-inside space-y-1 text-sm text-red-700">
+            {% for error in import_result.errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

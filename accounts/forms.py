@@ -95,7 +95,8 @@ class ProfileForm(forms.ModelForm):
 
     class Meta:
         model = Profile
-        fields = ["oil_company", "department", "phone_number", "bio"]
+        fields = ["oil_company", "department", "phone_number", "bio", "avatar"]
         widgets = {
             "bio": forms.Textarea(attrs={"rows": 5}),
         }
+

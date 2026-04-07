@@ -4,26 +4,80 @@
 
 {% block content %}
 <div class="space-y-6">
-    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-col gap-4 border-b border-slate-100 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-900">Суточные рапорты</h1>
-                <p class="mt-1 text-sm text-slate-500">Всего записей: {{ total_count }}</p>
+    {% if messages %}
+        <div class="space-y-3">
+            {% for message in messages %}
+                <div
+                    class="rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm
+                    {% if message.tags == 'success' %}
+                        border-emerald-200 bg-emerald-50 text-emerald-700
+                    {% elif message.tags == 'error' %}
+                        border-rose-200 bg-rose-50 text-rose-700
+                    {% elif message.tags == 'warning' %}
+                        border-amber-200 bg-amber-50 text-amber-700
+                    {% else %}
+                        border-slate-200 bg-slate-50 text-slate-700
+                    {% endif %}"
+                >
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+        <!-- Header -->
+        <div class="flex flex-col gap-5 border-b border-slate-100 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+            <div class="space-y-2">
+                <div class="flex flex-wrap items-center gap-3">
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">
+                        Суточные рапорты
+                    </h1>
+
+                    <span class="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                        Всего: {{ total_count }}
+                    </span>
+                </div>
+
+                <p class="text-sm text-slate-500">
+                    Управление рапортами, фильтрация, импорт Excel и экспорт сводного отчёта.
+                </p>
             </div>
 
-            <a
-                href="{% url 'dailyproduction_create' %}"
-                class="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto"
-            >
-                Добавить рапорт
-            </a>
+            <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                <button
+                    type="button"
+                    onclick="openModal('importModal')"
+                    class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 sm:w-auto"
+                >
+                    Импорт Excel
+                </button>
+
+                <button
+                    type="button"
+                    onclick="openModal('exportModal')"
+                    class="inline-flex w-full items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100 sm:w-auto"
+                >
+                    Экспорт XLSX
+                </button>
+
+                <a
+                    href="{% url 'dailyproduction_create' %}"
+                    class="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto"
+                >
+                    Добавить рапорт
+                </a>
+            </div>
         </div>
 
-        <div class="border-b border-slate-100 px-4 py-5 sm:px-6">
+        <!-- Filters -->
+        <div class="border-b border-slate-100 bg-slate-50/70 px-4 py-5 sm:px-6">
             <form method="get" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 <div>
-                    <label for="company" class="mb-2 block text-sm font-medium text-slate-700">Компания</label>
-                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                    <label for="company" class="mb-2 block text-sm font-medium text-slate-700">
+                        Компания
+                    </label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                         <select
                             name="company"
                             id="company"
@@ -40,8 +94,10 @@
                 </div>
 
                 <div>
-                    <label for="well" class="mb-2 block text-sm font-medium text-slate-700">Скважина</label>
-                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                    <label for="well" class="mb-2 block text-sm font-medium text-slate-700">
+                        Скважина
+                    </label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                         <select
                             name="well"
                             id="well"
@@ -58,8 +114,10 @@
                 </div>
 
                 <div>
-                    <label for="date_from" class="mb-2 block text-sm font-medium text-slate-700">Дата с</label>
-                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                    <label for="date_from" class="mb-2 block text-sm font-medium text-slate-700">
+                        Дата с
+                    </label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                         <input
                             type="date"
                             name="date_from"
@@ -71,8 +129,10 @@
                 </div>
 
                 <div>
-                    <label for="date_to" class="mb-2 block text-sm font-medium text-slate-700">Дата по</label>
-                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                    <label for="date_to" class="mb-2 block text-sm font-medium text-slate-700">
+                        Дата по
+                    </label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                         <input
                             type="date"
                             name="date_to"
@@ -84,8 +144,10 @@
                 </div>
 
                 <div>
-                    <label for="sort" class="mb-2 block text-sm font-medium text-slate-700">Сортировка</label>
-                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                    <label for="sort" class="mb-2 block text-sm font-medium text-slate-700">
+                        Сортировка
+                    </label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                         <select
                             name="sort"
                             id="sort"
@@ -102,7 +164,7 @@
                 <div class="flex flex-col gap-3 pt-2 sm:col-span-2 sm:flex-row sm:justify-end xl:col-span-5">
                     <a
                         href="{% url 'dailyproduction_list' %}"
-                        class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
+                        class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
                     >
                         Сбросить
                     </a>
@@ -118,11 +180,12 @@
         </div>
 
         {% if reports %}
+            <!-- Mobile cards -->
             <div class="space-y-4 px-4 py-5 sm:px-6 xl:hidden">
                 {% for report in reports %}
-                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
-                        <div class="flex items-start gap-3 sm:gap-4">
-                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
+                    <div class="rounded-3xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4 shadow-sm sm:p-5">
+                        <div class="flex items-start gap-4">
+                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-xs font-bold text-indigo-700">
                                 {{ report.well.name|slice:":2"|upper }}
                             </div>
 
@@ -134,43 +197,43 @@
                                     {{ report.well.oil_company.name|default:"—" }}
                                 </p>
 
-                                <div class="mt-4 rounded-xl bg-white p-3">
+                                <div class="mt-4 rounded-2xl border border-slate-100 bg-white p-3">
                                     <p class="text-xs uppercase tracking-wide text-slate-400">Дата</p>
-                                    <p class="mt-1 text-sm font-semibold leading-snug text-slate-900 break-words">
+                                    <p class="mt-1 text-sm font-semibold text-slate-900">
                                         {{ report.date }}
                                     </p>
                                 </div>
 
                                 <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                    <div class="rounded-xl bg-white p-3">
+                                    <div class="rounded-2xl border border-slate-100 bg-white p-3">
                                         <p class="text-xs uppercase tracking-wide text-slate-400">Часы</p>
-                                        <p class="mt-1 break-words text-sm font-semibold text-slate-900">
+                                        <p class="mt-1 text-sm font-semibold text-slate-900">
                                             {{ report.work_time }}
                                         </p>
                                     </div>
 
-                                    <div class="rounded-xl bg-white p-3">
+                                    <div class="rounded-2xl border border-slate-100 bg-white p-3">
                                         <p class="text-xs uppercase tracking-wide text-slate-400">Жидкость</p>
-                                        <p class="mt-1 break-words text-sm font-semibold text-slate-900">
+                                        <p class="mt-1 text-sm font-semibold text-slate-900">
                                             {{ report.liquid_debit }}
                                         </p>
                                     </div>
 
-                                    <div class="rounded-xl bg-white p-3">
+                                    <div class="rounded-2xl border border-slate-100 bg-white p-3">
                                         <p class="text-xs uppercase tracking-wide text-slate-400">Вода</p>
-                                        <p class="mt-1 break-words text-sm font-semibold text-slate-900">
+                                        <p class="mt-1 text-sm font-semibold text-slate-900">
                                             {{ report.water_cut }}
                                         </p>
                                     </div>
 
-                                    <div class="rounded-xl bg-white p-3">
+                                    <div class="rounded-2xl border border-slate-100 bg-white p-3">
                                         <p class="text-xs uppercase tracking-wide text-slate-400">Плотность</p>
-                                        <p class="mt-1 break-words text-sm font-semibold text-slate-900">
+                                        <p class="mt-1 text-sm font-semibold text-slate-900">
                                             {{ report.oil_density }}
                                         </p>
                                     </div>
 
-                                    <div class="rounded-xl bg-emerald-50 p-3 sm:col-span-2">
+                                    <div class="rounded-2xl bg-emerald-50 p-3 sm:col-span-2">
                                         <p class="text-xs uppercase tracking-wide text-emerald-600">Нефть</p>
                                         <p class="mt-1 break-all text-sm font-semibold text-emerald-700">
                                             {{ report.calculated_oil }}
@@ -181,14 +244,14 @@
                                 <div class="mt-4 flex flex-col gap-2 sm:flex-row">
                                     <a
                                         href="{% url 'dailyproduction_update' report.pk %}"
-                                        class="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:w-auto"
+                                        class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
                                     >
                                         Редактировать
                                     </a>
 
                                     <a
                                         href="{% url 'dailyproduction_delete' report.pk %}"
-                                        class="inline-flex w-full items-center justify-center rounded-xl border border-rose-200 px-3 py-2.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 sm:w-auto"
+                                        class="inline-flex w-full items-center justify-center rounded-2xl border border-rose-200 bg-white px-3 py-2.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 sm:w-auto"
                                     >
                                         Удалить
                                     </a>
@@ -200,6 +263,7 @@
             </div>
         {% endif %}
 
+        <!-- Desktop table -->
         <div class="hidden xl:block">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-200">
@@ -244,7 +308,7 @@
 
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-3">
-                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
+                                        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-100 text-xs font-bold text-indigo-700">
                                             {{ report.well.name|slice:":2"|upper }}
                                         </div>
                                         <div>
@@ -300,8 +364,11 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="9" class="px-6 py-10 text-center text-sm text-slate-500">
-                                    Суточных рапортов пока нет.
+                                <td colspan="9" class="px-6 py-14">
+                                    <div class="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center">
+                                        <p class="text-base font-semibold text-slate-700">Суточных рапортов пока нет</p>
+                                        <p class="mt-2 text-sm text-slate-500">Добавь первый рапорт или загрузи Excel-файл через импорт.</p>
+                                    </div>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -311,8 +378,13 @@
         </div>
 
         {% if not reports %}
-            <div class="px-4 py-10 text-center text-sm text-slate-500 sm:px-6 xl:hidden">
-                Суточных рапортов пока нет.
+            <div class="px-4 py-10 sm:px-6 xl:hidden">
+                <div class="rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center">
+                    <p class="text-base font-semibold text-slate-700">Суточных рапортов пока нет</p>
+                    <p class="mt-2 text-sm text-slate-500">
+                        Добавь первый рапорт или загрузи Excel-файл через импорт.
+                    </p>
+                </div>
             </div>
         {% endif %}
 
@@ -349,4 +421,187 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Import Modal -->
+<div
+    id="importModal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 px-4 backdrop-blur-sm"
+>
+    <div class="w-full max-w-xl rounded-[28px] bg-white shadow-2xl">
+        <div class="flex items-start justify-between border-b border-slate-100 px-6 py-5">
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900">Импорт рапортов из Excel</h2>
+                <p class="mt-1 text-sm text-slate-500">
+                    Загрузите .xlsx файл с дневными или недельными рапортами.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                onclick="closeModal('importModal')"
+                class="rounded-2xl px-3 py-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+            >
+                ✕
+            </button>
+        </div>
+
+        <form
+            method="post"
+            action="{% url 'dailyproduction_import' %}"
+            enctype="multipart/form-data"
+            class="space-y-5 px-6 py-6"
+        >
+            {% csrf_token %}
+
+            <div>
+                <label for="{{ import_form.file.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-700">
+                    Excel-файл
+                </label>
+                <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4">
+                    {{ import_form.file }}
+                    {% if import_form.file.help_text %}
+                        <p class="mt-2 text-xs text-slate-500">{{ import_form.file.help_text }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                Формат файла: <span class="font-medium text-slate-700">.xlsx</span>
+            </div>
+
+            <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button
+                    type="button"
+                    onclick="closeModal('importModal')"
+                    class="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                    Отмена
+                </button>
+
+                <button
+                    type="submit"
+                    class="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                >
+                    Загрузить файл
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div
+    id="exportModal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 px-4 backdrop-blur-sm"
+>
+    <div class="w-full max-w-xl rounded-[28px] bg-white shadow-2xl">
+        <div class="flex items-start justify-between border-b border-slate-100 px-6 py-5">
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900">Экспорт месячного отчёта</h2>
+                <p class="mt-1 text-sm text-slate-500">
+                    Выберите период и скачайте сводный Excel-файл.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                onclick="closeModal('exportModal')"
+                class="rounded-2xl px-3 py-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+            >
+                ✕
+            </button>
+        </div>
+
+        <form
+            method="post"
+            action="{% url 'dailyproduction_export' %}"
+            class="space-y-5 px-6 py-6"
+        >
+            {% csrf_token %}
+
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="{{ export_form.year.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-700">
+                        Год
+                    </label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                        {{ export_form.year }}
+                    </div>
+                </div>
+
+                <div>
+                    <label for="{{ export_form.month.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-700">
+                        Месяц
+                    </label>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                        {{ export_form.month }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                Файл будет сформирован в формате <span class="font-semibold">.xlsx</span>
+            </div>
+
+            <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button
+                    type="button"
+                    onclick="closeModal('exportModal')"
+                    class="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                    Отмена
+                </button>
+
+                <button
+                    type="submit"
+                    class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                >
+                    Скачать .xlsx
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+        document.body.classList.add("overflow-hidden");
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+        document.body.classList.remove("overflow-hidden");
+    }
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+            closeModal("importModal");
+            closeModal("exportModal");
+        }
+    });
+
+    const importModal = document.getElementById("importModal");
+    const exportModal = document.getElementById("exportModal");
+
+    if (importModal) {
+        importModal.addEventListener("click", function (event) {
+            if (event.target === this) {
+                closeModal("importModal");
+            }
+        });
+    }
+
+    if (exportModal) {
+        exportModal.addEventListener("click", function (event) {
+            if (event.target === this) {
+                closeModal("exportModal");
+            }
+        });
+    }
+</script>
 {% endblock %}

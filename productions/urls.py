@@ -10,6 +10,8 @@ from .views import (
     WellDeleteView,
     WellListView,
     WellUpdateView,
+    DailyProductionImportView,
+    MonthlyProductionExportView
 )
 
 urlpatterns = [
@@ -46,6 +48,16 @@ urlpatterns = [
         DailyProductionDeleteView.as_view(),
         name="dailyproduction_delete",
     ),
+    path(
+        "import/",
+        DailyProductionImportView.as_view(),
+        name="dailyproduction_import",
+        ),
+    path(
+        "export/monthly/",
+        MonthlyProductionExportView.as_view(),
+        name="dailyproduction_export",
+        ),
     # ===================================================================
     # Маршруты для управления скважинами (Well)
     # ===================================================================

@@ -118,3 +118,22 @@ class WellForm(forms.ModelForm):
             "latitude",
             "longitude",
         ]
+
+class DailyProductionImportForm(forms.Form):
+    file = forms.FileField(
+        label="Excel-файл с рапортами",
+        help_text="Загрузите .xlsx файл с недельными или дневными рапортами",
+    )
+
+
+class MonthlyProductionExportForm(forms.Form):
+    year = forms.IntegerField(
+        label="Год",
+        min_value=2000,
+        max_value=2100,
+    )
+    month = forms.IntegerField(
+        label="Месяц",
+        min_value=1,
+        max_value=12,
+    )

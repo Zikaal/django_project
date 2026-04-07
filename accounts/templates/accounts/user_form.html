@@ -15,7 +15,7 @@
       <p class="mt-1 text-sm text-slate-500">Заполните данные пользователя и профиля</p>
     </div>
 
-    <form method="post" class="grid gap-6 px-4 py-5 sm:px-6 md:gap-8 md:grid-cols-2">
+    <form method="post" enctype="multipart/form-data" class="grid gap-6 px-4 py-5 sm:px-6 md:gap-8 md:grid-cols-2 user-form">
       {% csrf_token %}
 
       {% if user_form %}
@@ -43,6 +43,17 @@
 
         <div class="space-y-5">
           <h2 class="text-lg font-semibold text-slate-900">Данные профиля</h2>
+
+          {% if edited_user and edited_user.profile.avatar %}
+            <div class="rounded-2xl bg-slate-50 p-4">
+              <p class="mb-3 text-sm font-medium text-slate-700">Текущий аватар</p>
+              <img
+                src="{{ edited_user.profile.avatar.url }}"
+                alt="Аватар"
+                class="h-20 w-20 rounded-full object-cover ring-4 ring-white shadow"
+              >
+            </div>
+          {% endif %}
 
           {% for field in profile_form %}
             <div class="min-w-0">
@@ -101,4 +112,21 @@
     </form>
   </div>
 </div>
+
+<style>
+  .user-form input,
+  .user-form select,
+  .user-form textarea {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+  }
+
+  .user-form textarea {
+    min-height: 140px;
+    resize: vertical;
+  }
+</style>
 {% endblock %}

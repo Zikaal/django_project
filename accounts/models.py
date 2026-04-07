@@ -51,6 +51,12 @@ class Profile(models.Model):
             "invalid": "Введите корректный номер телефона.",
         },
     )
+    avatar = models.ImageField(
+        "Аватар",
+        upload_to="avatars/",
+        blank=True,
+        null=True,
+    )
 
     def __str__(self):
         """

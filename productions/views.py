@@ -1,18 +1,27 @@
 import json
 from decimal import Decimal
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum, Value
+from django.db.models import Count, F, Sum, Value, DecimalField, ExpressionWrapper
 from django.db.models.functions import Coalesce
+from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import ListView, TemplateView
-from django.views.generic.edit import CreateView, DeleteView, UpdateView
+from django.views.generic.edit import CreateView, DeleteView, FormView, UpdateView
 
 from accounts.models import Profile
 from companies.models import OilCompany
-
-from .forms import DailyProductionForm, WellForm
+from .forms import (
+    DailyProductionForm,
+    WellForm,
+    DailyProductionImportForm,
+    MonthlyProductionExportForm,
+)
 from .models import DailyProduction, Well
+from .services.excel_export import build_monthly_production_report
+from .services.excel_import import import_daily_productions_from_excel
 
 
 class WellListView(LoginRequiredMixin, ListView):
@@ -42,28 +51,21 @@ class WellListView(LoginRequiredMixin, ListView):
         sort = self.request.GET.get("sort", "name")
         company_id = self.request.GET.get("company", "")
 
-        # Фильтрация по выбранной компании
         if company_id:
             queryset = queryset.filter(oil_company_id=company_id)
 
-        # Применяем сортировку
         if sort == "-name":
             queryset = queryset.order_by("-name")
         elif sort == "company":
             queryset = queryset.order_by("oil_company__name", "name")
         else:
-            # Сортировка по умолчанию — по названию скважины
             queryset = queryset.order_by("name")
 
         return queryset
 
     def get_context_data(self, **kwargs):
         """
-        Добавляем в контекст шаблона данные для фильтров и пагинации:
-        - Список всех компаний для выпадающего списка
-        - Текущие значения фильтров и сортировки
-        - Общее количество скважин после фильтрации
-        - Строку GET-параметров без "page"
+        Добавляем в контекст шаблона данные для фильтров и пагинации.
         """
         context = super().get_context_data(**kwargs)
 
@@ -72,7 +74,6 @@ class WellListView(LoginRequiredMixin, ListView):
         context["sort"] = self.request.GET.get("sort", "name")
         context["total_count"] = self.get_queryset().count()
 
-        # Сохраняем GET-параметры для корректной работы пагинации при фильтрации
         query_params = self.request.GET.copy()
         query_params.pop("page", None)
         context["query_string"] = query_params.urlencode()
@@ -83,8 +84,6 @@ class WellListView(LoginRequiredMixin, ListView):
 class WellCreateView(LoginRequiredMixin, CreateView):
     """
     Представление для создания новой скважины.
-    Использует форму WellForm.
-    После успешного создания перенаправляет на список скважин.
     """
 
     model = Well
@@ -96,8 +95,6 @@ class WellCreateView(LoginRequiredMixin, CreateView):
 class WellUpdateView(LoginRequiredMixin, UpdateView):
     """
     Представление для редактирования существующей скважины.
-    Использует ту же форму и шаблон, что и создание.
-    После успешного обновления перенаправляет на список скважин.
     """
 
     model = Well
@@ -109,8 +106,6 @@ class WellUpdateView(LoginRequiredMixin, UpdateView):
 class WellDeleteView(LoginRequiredMixin, DeleteView):
     """
     Представление для подтверждения и удаления скважины.
-    Использует отдельный шаблон подтверждения удаления.
-    После удаления перенаправляет на список скважин.
     """
 
     model = Well
@@ -121,7 +116,6 @@ class WellDeleteView(LoginRequiredMixin, DeleteView):
 # ===========================================================================
 # Ниже идут представления для DailyProduction
 # ===========================================================================
-
 
 class DailyProductionListView(LoginRequiredMixin, ListView):
     """
@@ -176,7 +170,7 @@ class DailyProductionListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         """
-        Добавляем в контекст данные для фильтров и пагинации.
+        Добавляем в контекст данные для фильтров, пагинации и модальных форм.
         """
         context = super().get_context_data(**kwargs)
 
@@ -194,6 +188,9 @@ class DailyProductionListView(LoginRequiredMixin, ListView):
         query_params = self.request.GET.copy()
         query_params.pop("page", None)
         context["query_string"] = query_params.urlencode()
+
+        context["import_form"] = DailyProductionImportForm()
+        context["export_form"] = MonthlyProductionExportForm()
 
         return context
 
@@ -224,6 +221,73 @@ class DailyProductionDeleteView(LoginRequiredMixin, DeleteView):
     success_url = reverse_lazy("dailyproduction_list")
 
 
+class DailyProductionImportView(LoginRequiredMixin, FormView):
+    """
+    Импорт Excel-файла с рапортами.
+    Работает как POST endpoint для модалки на странице списка.
+    """
+
+    form_class = DailyProductionImportForm
+    success_url = reverse_lazy("dailyproduction_list")
+
+    def form_valid(self, form):
+        uploaded_file = form.cleaned_data["file"]
+        result = import_daily_productions_from_excel(uploaded_file)
+
+        if result["created_count"] > 0:
+            messages.success(
+                self.request,
+                f"Успешно импортировано записей: {result['created_count']}",
+            )
+
+        if result["skipped_count"] > 0:
+            messages.info(
+                self.request,
+                f"Пропущено пустых строк: {result['skipped_count']}",
+            )
+
+        if result["errors"]:
+            messages.warning(
+                self.request,
+                f"Импорт завершён с ошибками. Количество ошибок: {len(result['errors'])}",
+            )
+            for error in result["errors"][:10]:
+                messages.error(self.request, error)
+
+        return redirect(self.success_url)
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Не удалось загрузить файл. Проверьте форму.")
+        return redirect(self.success_url)
+
+
+class MonthlyProductionExportView(LoginRequiredMixin, FormView):
+    """
+    Экспорт месячного сводного отчёта.
+    Работает как POST endpoint для модалки на странице списка.
+    """
+
+    form_class = MonthlyProductionExportForm
+
+    def form_valid(self, form):
+        year = form.cleaned_data["year"]
+        month = form.cleaned_data["month"]
+
+        output = build_monthly_production_report(year=year, month=month)
+
+        filename = f"monthly_production_report_{year}_{month:02d}.xlsx"
+        response = HttpResponse(
+            output.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Проверьте год и месяц для экспорта.")
+        return redirect("dailyproduction_list")
+
+
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "productions/dashboard.html"
 
@@ -237,7 +301,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         date_to = self.request.GET.get("date_to", "")
 
         oil_formula = ExpressionWrapper(
-            F("liquid_debit") * (Value(Decimal("1.0")) - F("water_cut") / Value(Decimal("100.0"))) * F("oil_density"),
+            F("liquid_debit")
+            * (Value(Decimal("1.0")) - F("water_cut") / Value(Decimal("100.0")))
+            * F("oil_density"),
             output_field=DecimalField(max_digits=14, decimal_places=4),
         )
 
@@ -299,14 +365,18 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         bar_data = [float(item["total_oil"]) for item in production_by_well]
 
         wells_by_company = (
-            wells_qs.values("oil_company__name").annotate(wells_count=Count("id")).order_by("oil_company__name")
+            wells_qs.values("oil_company__name")
+            .annotate(wells_count=Count("id"))
+            .order_by("oil_company__name")
         )
 
         pie_labels = [item["oil_company__name"] for item in wells_by_company]
         pie_data = [item["wells_count"] for item in wells_by_company]
 
         users_by_company = (
-            profiles_qs.values("oil_company__name").annotate(users_count=Count("id")).order_by("oil_company__name")
+            profiles_qs.values("oil_company__name")
+            .annotate(users_count=Count("id"))
+            .order_by("oil_company__name")
         )
 
         doughnut_labels = [item["oil_company__name"] for item in users_by_company]

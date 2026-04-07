@@ -124,7 +124,7 @@ def user_update_view(request, pk):
 
     if request.method == "POST":
         user_form = UserUpdateForm(request.POST, instance=user)
-        profile_form = ProfileForm(request.POST, instance=profile)
+        profile_form = ProfileForm(request.POST, request.FILES, instance=profile)
 
         if user_form.is_valid() and profile_form.is_valid():
             user_form.save()
@@ -167,7 +167,7 @@ def profile_update_view(request):
 
     if request.method == "POST":
         user_form = UserUpdateForm(request.POST, instance=user)
-        profile_form = ProfileForm(request.POST, instance=profile)
+        profile_form = ProfileForm(request.POST, request.FILES, instance=profile)
 
         if user_form.is_valid() and profile_form.is_valid():
             user_form.save()
