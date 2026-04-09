@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
 from openpyxl import load_workbook
 
@@ -54,8 +55,8 @@ def parse_decimal_value(value, field_name):
     raw = str(value).strip().replace(",", ".")
     try:
         return Decimal(raw)
-    except InvalidOperation:
-        raise ValueError(f"Поле '{field_name}' содержит некорректное число: {value}")
+    except InvalidOperation as exc:
+        raise ValueError(f"Поле '{field_name}' содержит некорректное число: {value}") from exc
 
 
 def resolve_headers(header_row):
@@ -75,8 +76,8 @@ def resolve_headers(header_row):
     return header_map
 
 
-def import_daily_productions_from_excel(file_obj):
-    workbook = load_workbook(filename=file_obj, data_only=True)
+def _import_from_workbook_source(file_source):
+    workbook = load_workbook(filename=file_source, data_only=True)
     worksheet = workbook.active
 
     rows = list(worksheet.iter_rows(values_only=True))
@@ -89,11 +90,11 @@ def import_daily_productions_from_excel(file_obj):
 
     try:
         header_map = resolve_headers(rows[0])
-    except ValueError as e:
+    except ValueError as exc:
         return {
             "created_count": 0,
             "skipped_count": 0,
-            "errors": [str(e)],
+            "errors": [str(exc)],
         }
 
     created_count = 0
@@ -106,7 +107,11 @@ def import_daily_productions_from_excel(file_obj):
             continue
 
         try:
-            well_name = str(row[header_map["well"]]).strip()
+            well_name_raw = row[header_map["well"]]
+            well_name = str(well_name_raw).strip() if well_name_raw is not None else ""
+            if not well_name:
+                raise ValueError("Название скважины не указано.")
+
             well = Well.objects.get(name=well_name)
 
             parsed_date = parse_date_value(row[header_map["date"]])
@@ -130,17 +135,33 @@ def import_daily_productions_from_excel(file_obj):
                 form.save()
                 created_count += 1
             else:
-                errors.append(
-                    f"Строка {row_number}: {form.errors.as_json()}"
-                )
+                errors.append(f"Строка {row_number}: {form.errors.as_json()}")
 
         except Well.DoesNotExist:
             errors.append(f"Строка {row_number}: скважина '{well_name}' не найдена.")
-        except Exception as e:
-            errors.append(f"Строка {row_number}: {str(e)}")
+        except Exception as exc:
+            errors.append(f"Строка {row_number}: {str(exc)}")
 
     return {
         "created_count": created_count,
         "skipped_count": skipped_count,
         "errors": errors,
     }
+
+
+def import_daily_productions_from_excel(file_obj):
+    """
+    Старый синхронный сценарий.
+    Оставляем, чтобы текущий импорт во view пока не сломался.
+    """
+    return _import_from_workbook_source(file_obj)
+
+
+def process_daily_productions_excel(file_path: str):
+    """
+    Новый сценарий для фоновой обработки:
+    Celery передаёт путь к уже сохранённому файлу.
+    """
+    path = Path(file_path)
+    with path.open("rb") as f:
+        return _import_from_workbook_source(f)

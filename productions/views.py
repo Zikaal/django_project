@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
 from django.db.models import Count, F, Sum, Value, DecimalField, ExpressionWrapper
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse
@@ -19,9 +20,9 @@ from .forms import (
     DailyProductionImportForm,
     MonthlyProductionExportForm,
 )
-from .models import DailyProduction, Well
+from .models import DailyProduction, Well, DailyProductionImportJob
 from .services.excel_export import build_monthly_production_report
-from .services.excel_import import import_daily_productions_from_excel
+from .tasks import import_daily_productions
 
 
 class WellListView(LoginRequiredMixin, ListView):
@@ -170,7 +171,8 @@ class DailyProductionListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         """
-        Добавляем в контекст данные для фильтров, пагинации и модальных форм.
+        Добавляем в контекст данные для фильтров, пагинации, модальных форм
+        и последних задач фонового импорта.
         """
         context = super().get_context_data(**kwargs)
 
@@ -191,6 +193,20 @@ class DailyProductionListView(LoginRequiredMixin, ListView):
 
         context["import_form"] = DailyProductionImportForm()
         context["export_form"] = MonthlyProductionExportForm()
+
+        if self.request.user.is_staff:
+            import_jobs = (
+                DailyProductionImportJob.objects.select_related("uploaded_by")
+                .order_by("-uploaded_at")[:10]
+            )
+        else:
+            import_jobs = (
+                DailyProductionImportJob.objects.select_related("uploaded_by")
+                .filter(uploaded_by=self.request.user)
+                .order_by("-uploaded_at")[:10]
+            )
+
+        context["recent_import_jobs"] = import_jobs
 
         return context
 
@@ -221,10 +237,18 @@ class DailyProductionDeleteView(LoginRequiredMixin, DeleteView):
     success_url = reverse_lazy("dailyproduction_list")
 
 
+def _enqueue_import_job(job_id: int):
+    async_result = import_daily_productions.delay(job_id)
+    DailyProductionImportJob.objects.filter(pk=job_id).update(
+        celery_task_id=async_result.id
+    )
+
+
 class DailyProductionImportView(LoginRequiredMixin, FormView):
     """
     Импорт Excel-файла с рапортами.
-    Работает как POST endpoint для модалки на странице списка.
+    Теперь файл не обрабатывается внутри HTTP-запроса,
+    а сохраняется как задача и отправляется в Celery.
     """
 
     form_class = DailyProductionImportForm
@@ -232,27 +256,25 @@ class DailyProductionImportView(LoginRequiredMixin, FormView):
 
     def form_valid(self, form):
         uploaded_file = form.cleaned_data["file"]
-        result = import_daily_productions_from_excel(uploaded_file)
 
-        if result["created_count"] > 0:
-            messages.success(
-                self.request,
-                f"Успешно импортировано записей: {result['created_count']}",
+        with transaction.atomic():
+            import_job = DailyProductionImportJob.objects.create(
+                file=uploaded_file,
+                uploaded_by=self.request.user,
+                status=DailyProductionImportJob.Status.PENDING,
             )
 
-        if result["skipped_count"] > 0:
-            messages.info(
-                self.request,
-                f"Пропущено пустых строк: {result['skipped_count']}",
+            transaction.on_commit(
+                lambda job_id=import_job.id: _enqueue_import_job(job_id)
             )
 
-        if result["errors"]:
-            messages.warning(
-                self.request,
-                f"Импорт завершён с ошибками. Количество ошибок: {len(result['errors'])}",
-            )
-            for error in result["errors"][:10]:
-                messages.error(self.request, error)
+        messages.success(
+            self.request,
+            (
+                f"Файл '{uploaded_file.name}' успешно загружен и поставлен в очередь "
+                f"на фоновую обработку. ID импорта: {import_job.id}."
+            ),
+        )
 
         return redirect(self.success_url)
 

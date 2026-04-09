@@ -1,7 +1,9 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 from companies.models import OilCompany
 
@@ -63,16 +65,12 @@ class Well(models.Model):
     )
 
     def __str__(self):
-        """Строковое представление скважины — возвращает её название."""
         return self.name
 
 
 class DailyProduction(models.Model):
     """
     Модель суточного рапорта по добыче (DailyProduction).
-
-    Хранит ежедневные показатели добычи по каждой скважине.
-    Обеспечивает уникальность записи для комбинации "скважина + дата".
     """
 
     well = models.ForeignKey(
@@ -115,8 +113,8 @@ class DailyProduction(models.Model):
         max_digits=5,
         decimal_places=2,
         validators=[
-            MinValueValidator(0, message="Обводненность не может быть меньше 0%%."),
-            MaxValueValidator(100, message="Обводненность не может быть больше 100%%."),
+            MinValueValidator(0, message="Обводненность не может быть меньше 0%."),
+            MaxValueValidator(100, message="Обводненность не может быть больше 100%."),
         ],
         error_messages={
             "blank": "Укажите обводненность.",
@@ -134,12 +132,6 @@ class DailyProduction(models.Model):
     )
 
     class Meta:
-        """
-        Метаданные модели:
-        - Уникальное ограничение: одна запись на скважину в сутки
-        - Человеко-читаемые названия в админке и формах
-        """
-
         constraints = [
             models.UniqueConstraint(
                 fields=["well", "date"],
@@ -149,22 +141,106 @@ class DailyProduction(models.Model):
         ]
         verbose_name = "Суточный рапорт"
         verbose_name_plural = "Суточные рапорты"
-        # Можно добавить ordering = ['-date'] при необходимости
 
     def __str__(self):
-        """Строковое представление суточного рапорта."""
         return f"{self.well} - {self.date}"
 
     @property
     def calculated_oil(self):
-        """
-        Расчётное количество добытой нефти за сутки (в тоннах).
-
-        Формула:
-            Объём нефти (м³) = Дебит жидкости × (1 - Обводнённость/100)
-            Масса нефти (т)   = Объём нефти × Плотность нефти
-
-        Возвращает:
-            Decimal — масса добытой нефти в тоннах.
-        """
         return self.liquid_debit * (Decimal("1") - self.water_cut / Decimal("100")) * self.oil_density
+
+
+class DailyProductionImportJob(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Ожидает"
+        PROCESSING = "processing", "Обрабатывается"
+        SUCCESS = "success", "Успешно"
+        COMPLETED_WITH_ERRORS = "completed_with_errors", "Завершено с ошибками"
+        FAILED = "failed", "Ошибка"
+
+    file = models.FileField(
+        "Excel-файл",
+        upload_to="imports/daily_productions/%Y/%m/%d/",
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="daily_production_import_jobs",
+        verbose_name="Загрузил",
+    )
+    status = models.CharField(
+        "Статус",
+        max_length=32,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+    celery_task_id = models.CharField(
+        "ID Celery-задачи",
+        max_length=255,
+        blank=True,
+    )
+
+    created_count = models.PositiveIntegerField("Создано записей", default=0)
+    skipped_count = models.PositiveIntegerField("Пропущено строк", default=0)
+    error_count = models.PositiveIntegerField("Количество ошибок", default=0)
+
+    errors_preview = models.JSONField(
+        "Ошибки (превью)",
+        default=list,
+        blank=True,
+    )
+    fatal_error = models.TextField(
+        "Критическая ошибка",
+        blank=True,
+    )
+
+    uploaded_at = models.DateTimeField("Загружено", auto_now_add=True)
+    started_at = models.DateTimeField("Начато", blank=True, null=True)
+    finished_at = models.DateTimeField("Завершено", blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Задача импорта суточных рапортов"
+        verbose_name_plural = "Задачи импорта суточных рапортов"
+        ordering = ["-uploaded_at"]
+
+    def mark_processing(self, task_id: str = ""):
+        self.status = self.Status.PROCESSING
+        self.started_at = timezone.now()
+        if task_id:
+            self.celery_task_id = task_id
+        self.save(update_fields=["status", "started_at", "celery_task_id"])
+
+    def mark_success(self, created_count: int, skipped_count: int, errors_preview: list[str]):
+        self.created_count = created_count
+        self.skipped_count = skipped_count
+        self.error_count = len(errors_preview)
+        self.errors_preview = errors_preview[:50]
+        self.status = (
+            self.Status.COMPLETED_WITH_ERRORS if errors_preview else self.Status.SUCCESS
+        )
+        self.finished_at = timezone.now()
+        self.save(
+            update_fields=[
+                "created_count",
+                "skipped_count",
+                "error_count",
+                "errors_preview",
+                "status",
+                "finished_at",
+            ]
+        )
+
+    def mark_failed(self, message: str):
+        self.status = self.Status.FAILED
+        self.fatal_error = message
+        self.finished_at = timezone.now()
+        self.save(update_fields=["status", "fatal_error", "finished_at"])
+
+    @property
+    def original_filename(self):
+        if not self.file:
+            return ""
+        return self.file.name.split("/")[-1]
+
+    def __str__(self):
+        return f"Импорт #{self.pk} — {self.get_status_display()}"
