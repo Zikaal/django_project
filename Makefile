@@ -99,3 +99,16 @@ logs-db: ## Просмотр логов MySQL (БД)
 
 logs-front: ## Просмотр логов Tailwind
 	$(DOCKER_COMPOSE) logs -f frontend
+
+# ==============================================================================
+# РАБОТА С CELERY
+# ==============================================================================
+
+logs-celery: ## Просмотр логов Celery worker
+	$(DOCKER_COMPOSE) logs -f celery
+
+celery: ## Интерактивный терминал внутри Celery контейнера
+	$(DOCKER_COMPOSE) exec celery bash
+
+restart-celery: ## Перезапуск Celery worker
+	$(DOCKER_COMPOSE) restart celery
