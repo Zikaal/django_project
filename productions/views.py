@@ -279,9 +279,10 @@ class MonthlyProductionExportView(LoginRequiredMixin, FormView):
                 self.request,
                 (
                     f"Экспорт отчёта за {month:02d}.{year} поставлен в очередь. "
-                    f"Когда файл будет готов, ты получишь уведомление."
+                    f"Когда файл будет готов, страница обновится автоматически."
                 ),
             )
+            return redirect(f"{self.success_url}?watch_notifications=1")
         else:
             messages.error(
                 self.request,
@@ -290,8 +291,7 @@ class MonthlyProductionExportView(LoginRequiredMixin, FormView):
                     f"но задачу не удалось отправить в очередь."
                 ),
             )
-
-        return redirect(self.success_url)
+            return redirect(self.success_url)
 
     def form_invalid(self, form):
         messages.error(self.request, "Проверьте год и месяц для экспорта.")
