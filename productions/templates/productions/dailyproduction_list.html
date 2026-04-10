@@ -39,7 +39,7 @@
                 </div>
 
                 <p class="text-sm text-slate-500">
-                    Управление рапортами, фильтрация, импорт Excel и экспорт сводного отчёта.
+                    Управление рапортами, фильтрация, импорт Excel и экспорт месячного отчёта.
                 </p>
             </div>
 
@@ -375,7 +375,7 @@
                             href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}"
                             class="inline-flex items-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                         >
-                            Вперед
+                            Вперёд
                         </a>
                     {% endif %}
                 </div>
@@ -384,7 +384,10 @@
     </div>
 </div>
 
-<div id="importModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 px-4 backdrop-blur-sm">
+<div
+    id="importModal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 px-4 backdrop-blur-sm"
+>
     <div class="w-full max-w-xl rounded-[28px] bg-white shadow-2xl">
         <div class="flex items-start justify-between border-b border-slate-100 px-6 py-5">
             <div>
@@ -403,7 +406,12 @@
             </button>
         </div>
 
-        <form method="post" action="{% url 'dailyproduction_import' %}" enctype="multipart/form-data" class="space-y-5 px-6 py-6">
+        <form
+            method="post"
+            action="{% url 'dailyproduction_import' %}"
+            enctype="multipart/form-data"
+            class="space-y-5 px-6 py-6"
+        >
             {% csrf_token %}
 
             <div>
@@ -442,13 +450,16 @@
     </div>
 </div>
 
-<div id="exportModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 px-4 backdrop-blur-sm">
+<div
+    id="exportModal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 px-4 backdrop-blur-sm"
+>
     <div class="w-full max-w-xl rounded-[28px] bg-white shadow-2xl">
         <div class="flex items-start justify-between border-b border-slate-100 px-6 py-5">
             <div>
                 <h2 class="text-lg font-semibold text-slate-900">Экспорт месячного отчёта</h2>
                 <p class="mt-1 text-sm text-slate-500">
-                    Выберите период и скачайте сводный Excel-файл.
+                    Отчёт будет подготовлен в фоне. Когда файл будет готов, придёт уведомление.
                 </p>
             </div>
 
@@ -461,7 +472,11 @@
             </button>
         </div>
 
-        <form method="post" action="{% url 'dailyproduction_export' %}" class="space-y-5 px-6 py-6">
+        <form
+            method="post"
+            action="{% url 'dailyproduction_export' %}"
+            class="space-y-5 px-6 py-6"
+        >
             {% csrf_token %}
 
             <div class="grid gap-4 sm:grid-cols-2">
@@ -485,7 +500,7 @@
             </div>
 
             <div class="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                Файл будет сформирован в формате <span class="font-semibold">.xlsx</span>
+                Готовый файл появится через уведомление после завершения фоновой обработки.
             </div>
 
             <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
@@ -501,12 +516,20 @@
                     type="submit"
                     class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
                 >
-                    Скачать .xlsx
+                    Отправить в очередь
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+<div
+    id="notification-config"
+    data-watch-notifications="{{ request.GET.watch_notifications|default:'' }}"
+    data-initial-unread="{{ unread_notifications_count|default:0 }}"
+    data-poll-url="{% url 'notification_poll' %}"
+    hidden
+></div>
 
 <script>
     function openModal(modalId) {
@@ -548,5 +571,55 @@
             }
         });
     }
+
+    (function () {
+        const configEl = document.getElementById("notification-config");
+        if (!configEl) return;
+
+        const shouldWatchNotifications =
+            configEl.dataset.watchNotifications === "1";
+
+        if (!shouldWatchNotifications) return;
+
+        const pollUrl = configEl.dataset.pollUrl;
+        let initialUnreadCount = Number(configEl.dataset.initialUnread || 0);
+        let isReloading = false;
+        let pollCounter = 0;
+        const maxPolls = 36;
+
+        async function pollNotifications() {
+            if (isReloading) return;
+
+            pollCounter += 1;
+            if (pollCounter > maxPolls) return;
+
+            try {
+                const response = await fetch(pollUrl, {
+                    method: "GET",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    },
+                    credentials: "same-origin"
+                });
+
+                if (!response.ok) return;
+
+                const data = await response.json();
+
+                if (data.unread_count > initialUnreadCount) {
+                    isReloading = true;
+
+                    const cleanUrl = new URL(window.location.href);
+                    cleanUrl.searchParams.delete("watch_notifications");
+
+                    window.location.href = cleanUrl.toString();
+                }
+            } catch (error) {
+                console.error("Ошибка polling уведомлений:", error);
+            }
+        }
+
+        setInterval(pollNotifications, 5000);
+    })();
 </script>
 {% endblock %}

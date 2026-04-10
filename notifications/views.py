@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -56,3 +57,20 @@ class NotificationMarkAllReadView(LoginRequiredMixin, View):
             read_at=timezone.now(),
         )
         return redirect(request.POST.get("next") or reverse_lazy("notification_list"))
+
+
+class NotificationPollView(LoginRequiredMixin, View):
+    def get(self, request):
+        unread_qs = Notification.objects.filter(
+            recipient=request.user,
+            is_read=False,
+        ).order_by("-created_at")
+
+        latest_unread = unread_qs.first()
+
+        return JsonResponse(
+            {
+                "unread_count": unread_qs.count(),
+                "latest_unread_id": latest_unread.id if latest_unread else None,
+            }
+        )

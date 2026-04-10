@@ -240,6 +240,7 @@ class DailyProductionImportView(LoginRequiredMixin, FormView):
                 self.request,
                 f"Файл '{uploaded_file.name}' загружен и отправлен на фоновую обработку.",
             )
+            return redirect(f"{self.success_url}?watch_notifications=1")
         else:
             messages.error(
                 self.request,
@@ -248,8 +249,7 @@ class DailyProductionImportView(LoginRequiredMixin, FormView):
                     f"отправить в очередь. Проверь Redis/Celery."
                 ),
             )
-
-        return redirect(self.success_url)
+            return redirect(self.success_url)
 
     def form_invalid(self, form):
         messages.error(self.request, "Не удалось загрузить файл. Проверьте форму.")
