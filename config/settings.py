@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "companies",
     "tailwind",
     "theme",
+    "notifications.apps.NotificationsConfig",
 ]
 
 MIDDLEWARE = [
@@ -76,6 +77,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "notifications.context_processors.notifications_context",
             ],
         },
     },
@@ -153,9 +155,11 @@ TAILWIND_APP_NAME = "theme"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# Celery
-CELERY_BROKER_URL = os.environ.get("REDIS_URL", "redis://redis:6379/1")
-CELERY_RESULT_BACKEND = os.environ.get("REDIS_URL", "redis://redis:6379/1")
+REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1")
+REDIS_CACHE_URL = os.environ.get("REDIS_CACHE_URL", "redis://127.0.0.1:6379/2")
+
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
 
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
@@ -164,3 +168,33 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 60 * 30  # 30 минут
+
+# Dashboard cache
+DASHBOARD_CACHE_TIMEOUT = int(os.environ.get("DASHBOARD_CACHE_TIMEOUT", 600))
+DASHBOARD_CACHE_VERSION_KEY = "dashboard:version"
+
+EXPORT_CACHE_TIMEOUT = int(os.environ.get("EXPORT_CACHE_TIMEOUT", 60 * 60 * 12))
+EXPORT_CACHE_VERSION_KEY = "exports:monthly:version"
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_CACHE_URL,
+        "TIMEOUT": 300,
+        "KEY_PREFIX": "base_project",
+    }
+}
+
+
+# Email
+EMAIL_BACKEND = os.environ.get(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.smtp.EmailBackend",
+)
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "127.0.0.1")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 1025))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "False").lower() == "true"
+EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "False").lower() == "true"
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@example.com")

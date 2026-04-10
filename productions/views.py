@@ -1,16 +1,21 @@
+import hashlib
 import json
+import logging
 from decimal import Decimal
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.cache import cache
+from django.http import FileResponse
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse_lazy
+from django.views import View
+from django.views.generic import ListView, TemplateView
+from django.views.generic.edit import CreateView, DeleteView, FormView, UpdateView
 from django.db import transaction
 from django.db.models import Count, F, Sum, Value, DecimalField, ExpressionWrapper
 from django.db.models.functions import Coalesce
-from django.http import HttpResponse
-from django.shortcuts import redirect
-from django.urls import reverse_lazy
-from django.views.generic import ListView, TemplateView
-from django.views.generic.edit import CreateView, DeleteView, FormView, UpdateView
 
 from accounts.models import Profile
 from companies.models import OilCompany
@@ -20,33 +25,24 @@ from .forms import (
     DailyProductionImportForm,
     MonthlyProductionExportForm,
 )
-from .models import DailyProduction, Well, DailyProductionImportJob
-from .services.excel_export import build_monthly_production_report
-from .tasks import import_daily_productions
+from .models import (
+    DailyProduction,
+    DailyProductionImportJob,
+    MonthlyProductionExportJob,
+    Well,
+)
+from .tasks import import_daily_productions, generate_monthly_production_export
+
+logger = logging.getLogger(__name__)
 
 
 class WellListView(LoginRequiredMixin, ListView):
-    """
-    Представление для отображения списка скважин.
-
-    Поддерживает:
-    - Фильтрацию по нефтяной компании
-    - Сортировку по названию скважины и компании
-    - Пагинацию (20 записей на страницу)
-    """
-
     model = Well
     template_name = "productions/well_list.html"
     context_object_name = "wells"
     paginate_by = 20
 
     def get_queryset(self):
-        """
-        Переопределяем queryset для:
-        1. Оптимизации запросов через select_related
-        2. Фильтрации по компании (GET-параметр "company")
-        3. Сортировки по GET-параметру "sort"
-        """
         queryset = Well.objects.select_related("oil_company")
 
         sort = self.request.GET.get("sort", "name")
@@ -65,9 +61,6 @@ class WellListView(LoginRequiredMixin, ListView):
         return queryset
 
     def get_context_data(self, **kwargs):
-        """
-        Добавляем в контекст шаблона данные для фильтров и пагинации.
-        """
         context = super().get_context_data(**kwargs)
 
         context["companies"] = OilCompany.objects.order_by("name")
@@ -83,10 +76,6 @@ class WellListView(LoginRequiredMixin, ListView):
 
 
 class WellCreateView(LoginRequiredMixin, CreateView):
-    """
-    Представление для создания новой скважины.
-    """
-
     model = Well
     form_class = WellForm
     template_name = "productions/well_form.html"
@@ -94,10 +83,6 @@ class WellCreateView(LoginRequiredMixin, CreateView):
 
 
 class WellUpdateView(LoginRequiredMixin, UpdateView):
-    """
-    Представление для редактирования существующей скважины.
-    """
-
     model = Well
     form_class = WellForm
     template_name = "productions/well_form.html"
@@ -105,39 +90,18 @@ class WellUpdateView(LoginRequiredMixin, UpdateView):
 
 
 class WellDeleteView(LoginRequiredMixin, DeleteView):
-    """
-    Представление для подтверждения и удаления скважины.
-    """
-
     model = Well
     template_name = "productions/well_confirm_delete.html"
     success_url = reverse_lazy("well_list")
 
 
-# ===========================================================================
-# Ниже идут представления для DailyProduction
-# ===========================================================================
-
 class DailyProductionListView(LoginRequiredMixin, ListView):
-    """
-    Представление для отображения списка ежедневных отчётов по добыче нефти.
-
-    Поддерживает:
-    - Фильтрацию по нефтяной компании, скважине и диапазону дат
-    - Сортировку по дате, скважине и компании
-    - Пагинацию (по 20 записей на страницу)
-    - Передачу параметров фильтров и сортировки в шаблон
-    """
-
     model = DailyProduction
     template_name = "productions/dailyproduction_list.html"
     context_object_name = "reports"
     paginate_by = 20
 
     def get_queryset(self):
-        """
-        Переопределяем стандартный queryset для оптимизации, фильтрации и сортировки.
-        """
         queryset = DailyProduction.objects.select_related("well", "well__oil_company")
 
         sort = self.request.GET.get("sort", "-date")
@@ -170,10 +134,6 @@ class DailyProductionListView(LoginRequiredMixin, ListView):
         return queryset
 
     def get_context_data(self, **kwargs):
-        """
-        Добавляем в контекст данные для фильтров, пагинации, модальных форм
-        и последних задач фонового импорта.
-        """
         context = super().get_context_data(**kwargs)
 
         context["companies"] = OilCompany.objects.order_by("name")
@@ -194,26 +154,10 @@ class DailyProductionListView(LoginRequiredMixin, ListView):
         context["import_form"] = DailyProductionImportForm()
         context["export_form"] = MonthlyProductionExportForm()
 
-        if self.request.user.is_staff:
-            import_jobs = (
-                DailyProductionImportJob.objects.select_related("uploaded_by")
-                .order_by("-uploaded_at")[:10]
-            )
-        else:
-            import_jobs = (
-                DailyProductionImportJob.objects.select_related("uploaded_by")
-                .filter(uploaded_by=self.request.user)
-                .order_by("-uploaded_at")[:10]
-            )
-
-        context["recent_import_jobs"] = import_jobs
-
         return context
 
 
 class DailyProductionCreateView(LoginRequiredMixin, CreateView):
-    """Представление для создания нового суточного рапорта по добыче."""
-
     model = DailyProduction
     form_class = DailyProductionForm
     template_name = "productions/dailyproduction_form.html"
@@ -221,8 +165,6 @@ class DailyProductionCreateView(LoginRequiredMixin, CreateView):
 
 
 class DailyProductionUpdateView(LoginRequiredMixin, UpdateView):
-    """Представление для редактирования суточного рапорта по добыче."""
-
     model = DailyProduction
     form_class = DailyProductionForm
     template_name = "productions/dailyproduction_form.html"
@@ -230,27 +172,54 @@ class DailyProductionUpdateView(LoginRequiredMixin, UpdateView):
 
 
 class DailyProductionDeleteView(LoginRequiredMixin, DeleteView):
-    """Представление для удаления суточного рапорта по добыче."""
-
     model = DailyProduction
     template_name = "productions/dailyproduction_confirm_delete.html"
     success_url = reverse_lazy("dailyproduction_list")
 
 
-def _enqueue_import_job(job_id: int):
-    async_result = import_daily_productions.delay(job_id)
-    DailyProductionImportJob.objects.filter(pk=job_id).update(
-        celery_task_id=async_result.id
-    )
+def _enqueue_import_job(job_id: int) -> bool:
+    try:
+        async_result = import_daily_productions.delay(job_id)
+        DailyProductionImportJob.objects.filter(pk=job_id).update(
+            celery_task_id=async_result.id
+        )
+        return True
+    except Exception:
+        logger.exception("Не удалось отправить задачу импорта %s в Celery.", job_id)
+
+        try:
+            job = DailyProductionImportJob.objects.get(pk=job_id)
+            job.mark_failed(
+                "Не удалось отправить задачу в очередь. Проверьте Redis, REDIS_URL и Celery worker."
+            )
+        except DailyProductionImportJob.DoesNotExist:
+            pass
+
+        return False
+
+
+def _enqueue_export_job(job_id: int) -> bool:
+    try:
+        async_result = generate_monthly_production_export.delay(job_id)
+        MonthlyProductionExportJob.objects.filter(pk=job_id).update(
+            celery_task_id=async_result.id
+        )
+        return True
+    except Exception:
+        logger.exception("Не удалось отправить задачу экспорта %s в Celery.", job_id)
+
+        try:
+            job = MonthlyProductionExportJob.objects.get(pk=job_id)
+            job.mark_failed(
+                "Не удалось отправить задачу экспорта в очередь. Проверьте Redis, REDIS_URL и Celery worker."
+            )
+        except MonthlyProductionExportJob.DoesNotExist:
+            pass
+
+        return False
 
 
 class DailyProductionImportView(LoginRequiredMixin, FormView):
-    """
-    Импорт Excel-файла с рапортами.
-    Теперь файл не обрабатывается внутри HTTP-запроса,
-    а сохраняется как задача и отправляется в Celery.
-    """
-
     form_class = DailyProductionImportForm
     success_url = reverse_lazy("dailyproduction_list")
 
@@ -264,17 +233,21 @@ class DailyProductionImportView(LoginRequiredMixin, FormView):
                 status=DailyProductionImportJob.Status.PENDING,
             )
 
-            transaction.on_commit(
-                lambda job_id=import_job.id: _enqueue_import_job(job_id)
-            )
+        queued = _enqueue_import_job(import_job.id)
 
-        messages.success(
-            self.request,
-            (
-                f"Файл '{uploaded_file.name}' успешно загружен и поставлен в очередь "
-                f"на фоновую обработку. ID импорта: {import_job.id}."
-            ),
-        )
+        if queued:
+            messages.success(
+                self.request,
+                f"Файл '{uploaded_file.name}' загружен и отправлен на фоновую обработку.",
+            )
+        else:
+            messages.error(
+                self.request,
+                (
+                    f"Файл '{uploaded_file.name}' был загружен, но задачу не удалось "
+                    f"отправить в очередь. Проверь Redis/Celery."
+                ),
+            )
 
         return redirect(self.success_url)
 
@@ -284,44 +257,96 @@ class DailyProductionImportView(LoginRequiredMixin, FormView):
 
 
 class MonthlyProductionExportView(LoginRequiredMixin, FormView):
-    """
-    Экспорт месячного сводного отчёта.
-    Работает как POST endpoint для модалки на странице списка.
-    """
-
     form_class = MonthlyProductionExportForm
+    success_url = reverse_lazy("dailyproduction_list")
 
     def form_valid(self, form):
         year = form.cleaned_data["year"]
         month = form.cleaned_data["month"]
 
-        output = build_monthly_production_report(year=year, month=month)
+        with transaction.atomic():
+            export_job = MonthlyProductionExportJob.objects.create(
+                requested_by=self.request.user,
+                year=year,
+                month=month,
+                status=MonthlyProductionExportJob.Status.PENDING,
+            )
 
-        filename = f"monthly_production_report_{year}_{month:02d}.xlsx"
-        response = HttpResponse(
-            output.getvalue(),
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-        return response
+        queued = _enqueue_export_job(export_job.id)
+
+        if queued:
+            messages.success(
+                self.request,
+                (
+                    f"Экспорт отчёта за {month:02d}.{year} поставлен в очередь. "
+                    f"Когда файл будет готов, ты получишь уведомление."
+                ),
+            )
+        else:
+            messages.error(
+                self.request,
+                (
+                    f"Запрос на экспорт за {month:02d}.{year} создан, "
+                    f"но задачу не удалось отправить в очередь."
+                ),
+            )
+
+        return redirect(self.success_url)
 
     def form_invalid(self, form):
         messages.error(self.request, "Проверьте год и месяц для экспорта.")
-        return redirect("dailyproduction_list")
+        return redirect(self.success_url)
+
+
+class MonthlyProductionExportDownloadView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        queryset = MonthlyProductionExportJob.objects.all()
+
+        if not request.user.is_staff:
+            queryset = queryset.filter(requested_by=request.user)
+
+        export_job = get_object_or_404(queryset, pk=pk)
+
+        if export_job.status != MonthlyProductionExportJob.Status.SUCCESS or not export_job.file:
+            messages.error(request, "Файл экспорта ещё не готов.")
+            return redirect("notification_list")
+
+        response = FileResponse(
+            export_job.file.open("rb"),
+            as_attachment=True,
+            filename=export_job.original_filename,
+        )
+        return response
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "productions/dashboard.html"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def _get_cache_version(self):
+        try:
+            version = cache.get(settings.DASHBOARD_CACHE_VERSION_KEY)
+            if version is None:
+                cache.set(settings.DASHBOARD_CACHE_VERSION_KEY, 1, None)
+                version = 1
+            return version
+        except Exception:
+            return 1
 
-        company_ids = self.request.GET.getlist("company")
-        company_ids = [company_id for company_id in company_ids if company_id]
+    def _build_cache_key(self, company_ids, date_from, date_to):
+        raw = json.dumps(
+            {
+                "company_ids": sorted(company_ids),
+                "date_from": date_from or "",
+                "date_to": date_to or "",
+                "version": self._get_cache_version(),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+        digest = hashlib.md5(raw.encode("utf-8")).hexdigest()
+        return f"dashboard:analytics:{digest}"
 
-        date_from = self.request.GET.get("date_from", "")
-        date_to = self.request.GET.get("date_to", "")
-
+    def _build_payload(self, company_ids, date_from, date_to):
         oil_formula = ExpressionWrapper(
             F("liquid_debit")
             * (Value(Decimal("1.0")) - F("water_cut") / Value(Decimal("100.0")))
@@ -345,16 +370,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         if date_to:
             reports_qs = reports_qs.filter(date__lte=date_to)
-
-        context["companies"] = OilCompany.objects.order_by("name")
-        context["selected_companies"] = company_ids
-        context["date_from"] = date_from
-        context["date_to"] = date_to
-
-        context["total_companies"] = companies_qs.count()
-        context["total_wells"] = wells_qs.count()
-        context["total_users"] = profiles_qs.count()
-        context["total_reports"] = reports_qs.count()
 
         production_by_date = (
             reports_qs.values("date")
@@ -404,16 +419,71 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         doughnut_labels = [item["oil_company__name"] for item in users_by_company]
         doughnut_data = [item["users_count"] for item in users_by_company]
 
-        context["line_labels"] = json.dumps(line_labels, ensure_ascii=False)
-        context["line_data"] = json.dumps(line_data)
+        return {
+            "total_companies": companies_qs.count(),
+            "total_wells": wells_qs.count(),
+            "total_users": profiles_qs.count(),
+            "total_reports": reports_qs.count(),
+            "line_labels": line_labels,
+            "line_data": line_data,
+            "bar_labels": bar_labels,
+            "bar_data": bar_data,
+            "pie_labels": pie_labels,
+            "pie_data": pie_data,
+            "doughnut_labels": doughnut_labels,
+            "doughnut_data": doughnut_data,
+        }
 
-        context["bar_labels"] = json.dumps(bar_labels, ensure_ascii=False)
-        context["bar_data"] = json.dumps(bar_data)
+    def _get_dashboard_payload(self, company_ids, date_from, date_to):
+        cache_key = self._build_cache_key(company_ids, date_from, date_to)
 
-        context["pie_labels"] = json.dumps(pie_labels, ensure_ascii=False)
-        context["pie_data"] = json.dumps(pie_data)
+        try:
+            cached_payload = cache.get(cache_key)
+            if cached_payload is not None:
+                return cached_payload, "hit"
+        except Exception:
+            cached_payload = None
 
-        context["doughnut_labels"] = json.dumps(doughnut_labels, ensure_ascii=False)
-        context["doughnut_data"] = json.dumps(doughnut_data)
+        payload = self._build_payload(company_ids, date_from, date_to)
+
+        try:
+            cache.set(cache_key, payload, settings.DASHBOARD_CACHE_TIMEOUT)
+            return payload, "miss"
+        except Exception:
+            return payload, "off"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        company_ids = self.request.GET.getlist("company")
+        company_ids = [company_id for company_id in company_ids if company_id]
+
+        date_from = self.request.GET.get("date_from", "")
+        date_to = self.request.GET.get("date_to", "")
+
+        payload, cache_state = self._get_dashboard_payload(company_ids, date_from, date_to)
+
+        context["companies"] = OilCompany.objects.order_by("name")
+        context["selected_companies"] = company_ids
+        context["date_from"] = date_from
+        context["date_to"] = date_to
+        context["cache_state"] = cache_state
+
+        context["total_companies"] = payload["total_companies"]
+        context["total_wells"] = payload["total_wells"]
+        context["total_users"] = payload["total_users"]
+        context["total_reports"] = payload["total_reports"]
+
+        context["line_labels"] = json.dumps(payload["line_labels"], ensure_ascii=False)
+        context["line_data"] = json.dumps(payload["line_data"])
+
+        context["bar_labels"] = json.dumps(payload["bar_labels"], ensure_ascii=False)
+        context["bar_data"] = json.dumps(payload["bar_data"])
+
+        context["pie_labels"] = json.dumps(payload["pie_labels"], ensure_ascii=False)
+        context["pie_data"] = json.dumps(payload["pie_data"])
+
+        context["doughnut_labels"] = json.dumps(payload["doughnut_labels"], ensure_ascii=False)
+        context["doughnut_data"] = json.dumps(payload["doughnut_data"])
 
         return context

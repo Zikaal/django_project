@@ -19,31 +19,31 @@
                     <nav class="hidden items-center gap-2 md:flex">
                         <a
                             href="{% url 'user_list' %}"
-                            class="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                            class="rounded-xl px-3 py-2 text-sm font-medium transition {% if request.resolver_match.url_name == 'user_list' %}bg-slate-100 text-slate-900{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}"
                         >
                             Пользователи
                         </a>
                         <a
                             href="{% url 'company_list' %}"
-                            class="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                            class="rounded-xl px-3 py-2 text-sm font-medium transition {% if request.resolver_match.url_name == 'company_list' %}bg-slate-100 text-slate-900{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}"
                         >
                             Компании
                         </a>
                         <a
                             href="{% url 'well_list' %}"
-                            class="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                            class="rounded-xl px-3 py-2 text-sm font-medium transition {% if request.resolver_match.url_name == 'well_list' %}bg-slate-100 text-slate-900{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}"
                         >
                             Скважины
                         </a>
                         <a
                             href="{% url 'dailyproduction_list' %}"
-                            class="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                            class="rounded-xl px-3 py-2 text-sm font-medium transition {% if request.resolver_match.url_name == 'dailyproduction_list' %}bg-slate-100 text-slate-900{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}"
                         >
                             Рапорты
                         </a>
                         <a
                             href="{% url 'dashboard' %}"
-                            class="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                            class="rounded-xl px-3 py-2 text-sm font-medium transition {% if request.resolver_match.url_name == 'dashboard' %}bg-slate-100 text-slate-900{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}"
                         >
                             Dashboard
                         </a>
@@ -53,6 +53,79 @@
                         <span class="hidden text-sm text-slate-500 sm:inline">
                             {{ request.user.get_full_name|default:request.user.username }}
                         </span>
+
+                        <div class="relative">
+                            <button
+                                type="button"
+                                id="notificationButton"
+                                class="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+                                title="Уведомления"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17H9.143m9.714 0A2.143 2.143 0 0 1 16.714 19.143H7.286A2.143 2.143 0 0 1 5.143 17m13.714 0V11.857a6.857 6.857 0 1 0-13.714 0V17m13.714 0H5.143" />
+                                </svg>
+
+                                {% if unread_notifications_count > 0 %}
+                                    <span class="absolute -right-1 -top-1 inline-flex min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                        {{ unread_notifications_count }}
+                                    </span>
+                                {% endif %}
+                            </button>
+
+                            <div
+                                id="notificationPanel"
+                                class="absolute right-0 z-50 mt-3 hidden w-[360px] rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl"
+                            >
+                                <div class="mb-3 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-900">Уведомления</p>
+                                        <p class="text-xs text-slate-500">
+                                            Непрочитанных: {{ unread_notifications_count }}
+                                        </p>
+                                    </div>
+
+                                    <a
+                                        href="{% url 'notification_list' %}"
+                                        class="text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                                    >
+                                        Все
+                                    </a>
+                                </div>
+
+                                {% if recent_notifications %}
+                                    <div class="space-y-3">
+                                        {% for notification in recent_notifications %}
+                                            <div class="rounded-2xl border border-slate-100 p-3">
+                                                <div class="flex items-start gap-3">
+                                                    <span class="mt-0.5 inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold {{ notification.badge_class }}">
+                                                        {{ notification.get_level_display }}
+                                                    </span>
+
+                                                    <div class="min-w-0 flex-1">
+                                                        <p class="text-sm font-semibold text-slate-900">
+                                                            {{ notification.title }}
+                                                        </p>
+                                                        <p class="mt-1 text-xs leading-5 text-slate-500">
+                                                            {{ notification.message|truncatechars:100 }}
+                                                        </p>
+                                                        <p class="mt-2 text-[11px] text-slate-400">
+                                                            {{ notification.created_at|date:"d.m.Y H:i" }}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
+                                        <p class="text-sm font-semibold text-slate-700">Пока уведомлений нет</p>
+                                        <p class="mt-1 text-xs text-slate-500">
+                                            Здесь будут появляться результаты фоновых задач.
+                                        </p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
 
                         <a
                             href="{% url 'profile' %}"
@@ -105,5 +178,35 @@
             {% block content %}{% endblock %}
         </main>
     </div>
+
+    {% if request.user.is_authenticated %}
+    <script>
+        const notificationButton = document.getElementById("notificationButton");
+        const notificationPanel = document.getElementById("notificationPanel");
+
+        if (notificationButton && notificationPanel) {
+            notificationButton.addEventListener("click", function (event) {
+                event.stopPropagation();
+                notificationPanel.classList.toggle("hidden");
+            });
+
+            document.addEventListener("click", function (event) {
+                if (
+                    !notificationPanel.classList.contains("hidden") &&
+                    !notificationPanel.contains(event.target) &&
+                    !notificationButton.contains(event.target)
+                ) {
+                    notificationPanel.classList.add("hidden");
+                }
+            });
+
+            document.addEventListener("keydown", function (event) {
+                if (event.key === "Escape") {
+                    notificationPanel.classList.add("hidden");
+                }
+            });
+        }
+    </script>
+    {% endif %}
 </body>
 </html>

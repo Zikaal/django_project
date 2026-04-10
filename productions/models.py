@@ -9,13 +9,6 @@ from companies.models import OilCompany
 
 
 class Well(models.Model):
-    """
-    Модель скважины (Well).
-
-    Хранит основную информацию о нефтяной скважине, включая её местоположение,
-    принадлежность к компании и технические характеристики.
-    """
-
     name = models.CharField(
         "Название скважины",
         max_length=100,
@@ -69,10 +62,6 @@ class Well(models.Model):
 
 
 class DailyProduction(models.Model):
-    """
-    Модель суточного рапорта по добыче (DailyProduction).
-    """
-
     well = models.ForeignKey(
         Well,
         on_delete=models.CASCADE,
@@ -244,3 +233,79 @@ class DailyProductionImportJob(models.Model):
 
     def __str__(self):
         return f"Импорт #{self.pk} — {self.get_status_display()}"
+
+
+class MonthlyProductionExportJob(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Ожидает"
+        PROCESSING = "processing", "Обрабатывается"
+        SUCCESS = "success", "Успешно"
+        FAILED = "failed", "Ошибка"
+
+    year = models.PositiveIntegerField("Год")
+    month = models.PositiveSmallIntegerField("Месяц")
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="monthly_export_jobs",
+        verbose_name="Запросил",
+    )
+    status = models.CharField(
+        "Статус",
+        max_length=32,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+    celery_task_id = models.CharField(
+        "ID Celery-задачи",
+        max_length=255,
+        blank=True,
+    )
+    file = models.FileField(
+        "Готовый файл",
+        upload_to="exports/monthly/%Y/%m/",
+        blank=True,
+    )
+    reused_cache = models.BooleanField("Использован кэш", default=False)
+    fatal_error = models.TextField("Ошибка", blank=True)
+
+    created_at = models.DateTimeField("Создано", auto_now_add=True)
+    started_at = models.DateTimeField("Начато", blank=True, null=True)
+    finished_at = models.DateTimeField("Завершено", blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Задача экспорта месячного отчёта"
+        verbose_name_plural = "Задачи экспорта месячных отчётов"
+        ordering = ["-created_at"]
+
+    def mark_processing(self, task_id: str = ""):
+        self.status = self.Status.PROCESSING
+        self.started_at = timezone.now()
+        if task_id:
+            self.celery_task_id = task_id
+        self.save(update_fields=["status", "started_at", "celery_task_id"])
+
+    def mark_success(self, reused_cache: bool = False):
+        self.status = self.Status.SUCCESS
+        self.reused_cache = reused_cache
+        self.finished_at = timezone.now()
+        self.save(update_fields=["file", "status", "reused_cache", "finished_at"])
+
+    def mark_failed(self, message: str):
+        self.status = self.Status.FAILED
+        self.fatal_error = message
+        self.finished_at = timezone.now()
+        self.save(update_fields=["status", "fatal_error", "finished_at"])
+
+    @property
+    def original_filename(self):
+        if not self.file:
+            return ""
+        return self.file.name.split("/")[-1]
+
+    @property
+    def period_label(self):
+        return f"{self.month:02d}.{self.year}"
+
+    def __str__(self):
+        return f"Экспорт #{self.pk} — {self.period_label}"
