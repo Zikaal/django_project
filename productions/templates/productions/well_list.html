@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load access_tags %}
 
 {% block title %}Скважины{% endblock %}
 
@@ -11,12 +12,14 @@
                 <p class="mt-1 text-sm text-slate-500">Всего скважин: {{ total_count }}</p>
             </div>
 
-            <a
-                href="{% url 'well_create' %}"
-                class="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto"
-            >
-                Добавить скважину
-            </a>
+            {% if request.user|can_manage_wells_filter %}
+                <a
+                    href="{% url 'well_create' %}"
+                    class="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto"
+                >
+                    Добавить скважину
+                </a>
+            {% endif %}
         </div>
 
         <div class="border-b border-slate-100 px-4 py-5 sm:px-6">
@@ -120,21 +123,23 @@
                                     </div>
                                 </div>
 
-                                <div class="mt-4 flex flex-col gap-2 sm:flex-row">
-                                    <a
-                                        href="{% url 'well_update' well.pk %}"
-                                        class="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:w-auto"
-                                    >
-                                        Редактировать
-                                    </a>
+                                {% if request.user|can_manage_wells_filter %}
+                                    <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+                                        <a
+                                            href="{% url 'well_update' well.pk %}"
+                                            class="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:w-auto"
+                                        >
+                                            Редактировать
+                                        </a>
 
-                                    <a
-                                        href="{% url 'well_delete' well.pk %}"
-                                        class="inline-flex w-full items-center justify-center rounded-xl border border-rose-200 px-3 py-2.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 sm:w-auto"
-                                    >
-                                        Удалить
-                                    </a>
-                                </div>
+                                        <a
+                                            href="{% url 'well_delete' well.pk %}"
+                                            class="inline-flex w-full items-center justify-center rounded-xl border border-rose-200 px-3 py-2.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 sm:w-auto"
+                                        >
+                                            Удалить
+                                        </a>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -206,21 +211,25 @@
                                 </td>
 
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center gap-2">
-                                        <a
-                                            href="{% url 'well_update' well.pk %}"
-                                            class="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-                                        >
-                                            Редактировать
-                                        </a>
+                                    {% if request.user|can_manage_wells_filter %}
+                                        <div class="flex items-center gap-2">
+                                            <a
+                                                href="{% url 'well_update' well.pk %}"
+                                                class="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                                            >
+                                                Редактировать
+                                            </a>
 
-                                        <a
-                                            href="{% url 'well_delete' well.pk %}"
-                                            class="inline-flex items-center rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
-                                        >
-                                            Удалить
-                                        </a>
-                                    </div>
+                                            <a
+                                                href="{% url 'well_delete' well.pk %}"
+                                                class="inline-flex items-center rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                                            >
+                                                Удалить
+                                            </a>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-sm text-slate-400">Только просмотр</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% empty %}

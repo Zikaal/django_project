@@ -1,4 +1,4 @@
-{% load static %}
+{% load static access_tags %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -17,36 +17,50 @@
 
                 {% if request.user.is_authenticated %}
                     <nav class="hidden items-center gap-2 md:flex">
-                        <a
-                            href="{% url 'user_list' %}"
-                            class="rounded-xl px-3 py-2 text-sm font-medium transition {% if request.resolver_match.url_name == 'user_list' %}bg-slate-100 text-slate-900{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}"
-                        >
-                            Пользователи
-                        </a>
-                        <a
-                            href="{% url 'company_list' %}"
-                            class="rounded-xl px-3 py-2 text-sm font-medium transition {% if request.resolver_match.url_name == 'company_list' %}bg-slate-100 text-slate-900{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}"
-                        >
-                            Компании
-                        </a>
-                        <a
-                            href="{% url 'well_list' %}"
-                            class="rounded-xl px-3 py-2 text-sm font-medium transition {% if request.resolver_match.url_name == 'well_list' %}bg-slate-100 text-slate-900{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}"
-                        >
-                            Скважины
-                        </a>
-                        <a
-                            href="{% url 'dailyproduction_list' %}"
-                            class="rounded-xl px-3 py-2 text-sm font-medium transition {% if request.resolver_match.url_name == 'dailyproduction_list' %}bg-slate-100 text-slate-900{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}"
-                        >
-                            Рапорты
-                        </a>
-                        <a
-                            href="{% url 'dashboard' %}"
-                            class="rounded-xl px-3 py-2 text-sm font-medium transition {% if request.resolver_match.url_name == 'dashboard' %}bg-slate-100 text-slate-900{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}"
-                        >
-                            Dashboard
-                        </a>
+                        {% if request.user|can_manage_users_filter %}
+                            <a
+                                href="{% url 'user_list' %}"
+                                class="rounded-xl px-3 py-2 text-sm font-medium transition {% if request.resolver_match.url_name == 'user_list' %}bg-slate-100 text-slate-900{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}"
+                            >
+                                Пользователи
+                            </a>
+                        {% endif %}
+
+                        {% if request.user|can_view_companies_filter %}
+                            <a
+                                href="{% url 'company_list' %}"
+                                class="rounded-xl px-3 py-2 text-sm font-medium transition {% if request.resolver_match.url_name == 'company_list' %}bg-slate-100 text-slate-900{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}"
+                            >
+                                Компании
+                            </a>
+                        {% endif %}
+
+                        {% if request.user|can_view_wells_filter %}
+                            <a
+                                href="{% url 'well_list' %}"
+                                class="rounded-xl px-3 py-2 text-sm font-medium transition {% if request.resolver_match.url_name == 'well_list' %}bg-slate-100 text-slate-900{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}"
+                            >
+                                Скважины
+                            </a>
+                        {% endif %}
+
+                        {% if request.user|can_view_reports_filter %}
+                            <a
+                                href="{% url 'dailyproduction_list' %}"
+                                class="rounded-xl px-3 py-2 text-sm font-medium transition {% if request.resolver_match.url_name == 'dailyproduction_list' %}bg-slate-100 text-slate-900{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}"
+                            >
+                                Рапорты
+                            </a>
+                        {% endif %}
+
+                        {% if request.user|can_access_dashboard_filter %}
+                            <a
+                                href="{% url 'dashboard' %}"
+                                class="rounded-xl px-3 py-2 text-sm font-medium transition {% if request.resolver_match.url_name == 'dashboard' %}bg-slate-100 text-slate-900{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}"
+                            >
+                                Dashboard
+                            </a>
+                        {% endif %}
                     </nav>
 
                     <div class="ml-auto flex items-center gap-3">

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load access_tags %}
 
 {% block title %}Суточные рапорты{% endblock %}
 
@@ -44,28 +45,34 @@
             </div>
 
             <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-                <button
-                    type="button"
-                    onclick="openModal('importModal')"
-                    class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 sm:w-auto"
-                >
-                    Импорт Excel
-                </button>
+                {% if can_import %}
+                    <button
+                        type="button"
+                        onclick="openModal('importModal')"
+                        class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 sm:w-auto"
+                    >
+                        Импорт Excel
+                    </button>
+                {% endif %}
 
-                <button
-                    type="button"
-                    onclick="openModal('exportModal')"
-                    class="inline-flex w-full items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100 sm:w-auto"
-                >
-                    Экспорт XLSX
-                </button>
+                {% if can_export %}
+                    <button
+                        type="button"
+                        onclick="openModal('exportModal')"
+                        class="inline-flex w-full items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100 sm:w-auto"
+                    >
+                        Экспорт XLSX
+                    </button>
+                {% endif %}
 
-                <a
-                    href="{% url 'dailyproduction_create' %}"
-                    class="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto"
-                >
-                    Добавить рапорт
-                </a>
+                {% if request.user|can_create_reports_filter %}
+                    <a
+                        href="{% url 'dailyproduction_create' %}"
+                        class="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto"
+                    >
+                        Добавить рапорт
+                    </a>
+                {% endif %}
             </div>
         </div>
 
@@ -180,6 +187,9 @@
         {% if reports %}
             <div class="space-y-4 px-4 py-5 sm:px-6 xl:hidden">
                 {% for report in reports %}
+                    {% can_edit_report_obj request.user report as can_edit_obj %}
+                    {% can_delete_report_obj request.user report as can_delete_obj %}
+
                     <div class="rounded-3xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4 shadow-sm sm:p-5">
                         <div class="flex items-start gap-4">
                             <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-xs font-bold text-indigo-700">
@@ -238,21 +248,31 @@
                                     </div>
                                 </div>
 
-                                <div class="mt-4 flex flex-col gap-2 sm:flex-row">
-                                    <a
-                                        href="{% url 'dailyproduction_update' report.pk %}"
-                                        class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
-                                    >
-                                        Редактировать
-                                    </a>
+                                {% if can_edit_obj or can_delete_obj %}
+                                    <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+                                        {% if can_edit_obj %}
+                                            <a
+                                                href="{% url 'dailyproduction_update' report.pk %}"
+                                                class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
+                                            >
+                                                Редактировать
+                                            </a>
+                                        {% endif %}
 
-                                    <a
-                                        href="{% url 'dailyproduction_delete' report.pk %}"
-                                        class="inline-flex w-full items-center justify-center rounded-2xl border border-rose-200 bg-white px-3 py-2.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 sm:w-auto"
-                                    >
-                                        Удалить
-                                    </a>
-                                </div>
+                                        {% if can_delete_obj %}
+                                            <a
+                                                href="{% url 'dailyproduction_delete' report.pk %}"
+                                                class="inline-flex w-full items-center justify-center rounded-2xl border border-rose-200 bg-white px-3 py-2.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 sm:w-auto"
+                                            >
+                                                Удалить
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    <div class="mt-4">
+                                        <span class="text-sm text-slate-400">Только просмотр</span>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -279,6 +299,9 @@
 
                     <tbody class="divide-y divide-slate-100">
                         {% for report in reports %}
+                            {% can_edit_report_obj request.user report as can_edit_obj %}
+                            {% can_delete_report_obj request.user report as can_delete_obj %}
+
                             <tr class="hover:bg-slate-50/80">
                                 <td class="px-6 py-4 text-sm text-slate-600">{{ report.well.oil_company.name|default:"—" }}</td>
 
@@ -307,21 +330,29 @@
                                 </td>
 
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center gap-2">
-                                        <a
-                                            href="{% url 'dailyproduction_update' report.pk %}"
-                                            class="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-                                        >
-                                            Редактировать
-                                        </a>
+                                    {% if can_edit_obj or can_delete_obj %}
+                                        <div class="flex items-center gap-2">
+                                            {% if can_edit_obj %}
+                                                <a
+                                                    href="{% url 'dailyproduction_update' report.pk %}"
+                                                    class="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                                                >
+                                                    Редактировать
+                                                </a>
+                                            {% endif %}
 
-                                        <a
-                                            href="{% url 'dailyproduction_delete' report.pk %}"
-                                            class="inline-flex items-center rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
-                                        >
-                                            Удалить
-                                        </a>
-                                    </div>
+                                            {% if can_delete_obj %}
+                                                <a
+                                                    href="{% url 'dailyproduction_delete' report.pk %}"
+                                                    class="inline-flex items-center rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                                                >
+                                                    Удалить
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-sm text-slate-400">Только просмотр</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% empty %}

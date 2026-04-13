@@ -17,7 +17,21 @@ from django.db import transaction
 from django.db.models import Count, F, Sum, Value, DecimalField, ExpressionWrapper
 from django.db.models.functions import Coalesce
 
+from accounts.mixins import (
+    AdminOrManagerMixin,
+    AdminOrManagerScopedMixin,
+    AnyRoleScopedMixin,
+)
 from accounts.models import Profile
+from django.core.exceptions import PermissionDenied
+from accounts.utils import (
+    can_import_export,
+    can_edit_dailyproduction_obj,
+    can_delete_dailyproduction_obj,
+    get_user_company,
+    is_admin,
+    is_manager,
+)
 from companies.models import OilCompany
 from .forms import (
     DailyProductionForm,
@@ -36,20 +50,30 @@ from .tasks import import_daily_productions, generate_monthly_production_export
 logger = logging.getLogger(__name__)
 
 
-class WellListView(LoginRequiredMixin, ListView):
+# ---------------------------------------------------------------------------
+# Скважины (Wells)
+# Правила: Admin — полный CRUD; Manager — CRUD только своей компании;
+# Operator — доступа нет вообще
+# ---------------------------------------------------------------------------
+
+class WellListView(AdminOrManagerScopedMixin, ListView):
+    required_permissions = ("productions.view_well",)
     model = Well
     template_name = "productions/well_list.html"
     context_object_name = "wells"
     paginate_by = 20
+    company_filter_field = "oil_company_id"
 
     def get_queryset(self):
-        queryset = Well.objects.select_related("oil_company")
+        queryset = super().get_queryset().select_related("oil_company")
 
         sort = self.request.GET.get("sort", "name")
-        company_id = self.request.GET.get("company", "")
 
-        if company_id:
-            queryset = queryset.filter(oil_company_id=company_id)
+        # Admin может дополнительно фильтровать по компании через URL
+        if is_admin(self.request.user):
+            company_id = self.request.GET.get("company", "")
+            if company_id:
+                queryset = queryset.filter(oil_company_id=company_id)
 
         if sort == "-name":
             queryset = queryset.order_by("-name")
@@ -63,7 +87,15 @@ class WellListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context["companies"] = OilCompany.objects.order_by("name")
+        if is_admin(self.request.user):
+            context["companies"] = OilCompany.objects.order_by("name")
+        else:
+            user_company = get_user_company(self.request.user)
+            context["companies"] = (
+                OilCompany.objects.filter(id=user_company.id)
+                if user_company else OilCompany.objects.none()
+            )
+
         context["selected_company"] = self.request.GET.get("company", "")
         context["sort"] = self.request.GET.get("sort", "name")
         context["total_count"] = self.get_queryset().count()
@@ -75,50 +107,72 @@ class WellListView(LoginRequiredMixin, ListView):
         return context
 
 
-class WellCreateView(LoginRequiredMixin, CreateView):
+class WellCreateView(AdminOrManagerScopedMixin, CreateView):
+    required_permissions = ("productions.add_well",)
     model = Well
     form_class = WellForm
     template_name = "productions/well_form.html"
     success_url = reverse_lazy("well_list")
 
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        _scope_company_in_form(form, self.request.user)
+        return form
 
-class WellUpdateView(LoginRequiredMixin, UpdateView):
+
+class WellUpdateView(AdminOrManagerScopedMixin, UpdateView):
+    required_permissions = ("productions.change_well",)
     model = Well
     form_class = WellForm
     template_name = "productions/well_form.html"
     success_url = reverse_lazy("well_list")
+    company_filter_field = "oil_company_id"
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        _scope_company_in_form(form, self.request.user)
+        return form
 
 
-class WellDeleteView(LoginRequiredMixin, DeleteView):
+class WellDeleteView(AdminOrManagerScopedMixin, DeleteView):
+    required_permissions = ("productions.delete_well",)
     model = Well
     template_name = "productions/well_confirm_delete.html"
     success_url = reverse_lazy("well_list")
+    company_filter_field = "oil_company_id"
 
 
-class DailyProductionListView(LoginRequiredMixin, ListView):
+# ---------------------------------------------------------------------------
+# Суточные рапорты (DailyProduction)
+# Правила: Admin — полный CRUD; Manager — CRUD своей компании;
+# Operator — создание + просмотр своей компании
+# ---------------------------------------------------------------------------
+
+class DailyProductionListView(AnyRoleScopedMixin, ListView):
+    required_permissions = ("productions.view_dailyproduction",)
     model = DailyProduction
     template_name = "productions/dailyproduction_list.html"
     context_object_name = "reports"
     paginate_by = 20
+    company_filter_field = "well__oil_company_id"
 
     def get_queryset(self):
-        queryset = DailyProduction.objects.select_related("well", "well__oil_company")
+        queryset = super().get_queryset().select_related("well", "well__oil_company")
 
         sort = self.request.GET.get("sort", "-date")
-        company_id = self.request.GET.get("company")
         well_id = self.request.GET.get("well")
         date_from = self.request.GET.get("date_from")
         date_to = self.request.GET.get("date_to")
 
-        if company_id:
-            queryset = queryset.filter(well__oil_company_id=company_id)
+        if is_admin(self.request.user):
+            company_id = self.request.GET.get("company")
+            if company_id:
+                queryset = queryset.filter(well__oil_company_id=company_id)
 
         if well_id:
             queryset = queryset.filter(well_id=well_id)
-
         if date_from:
             queryset = queryset.filter(date__gte=date_from)
-
         if date_to:
             queryset = queryset.filter(date__lte=date_to)
 
@@ -136,15 +190,26 @@ class DailyProductionListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context["companies"] = OilCompany.objects.order_by("name")
-        context["wells"] = Well.objects.select_related("oil_company").order_by("name")
+        if is_admin(self.request.user):
+            context["companies"] = OilCompany.objects.order_by("name")
+            context["wells"] = Well.objects.select_related("oil_company").order_by("name")
+        else:
+            user_company = get_user_company(self.request.user)
+            if user_company:
+                context["companies"] = OilCompany.objects.filter(id=user_company.id)
+                context["wells"] = (
+                    Well.objects.filter(oil_company=user_company)
+                    .select_related("oil_company").order_by("name")
+                )
+            else:
+                context["companies"] = OilCompany.objects.none()
+                context["wells"] = Well.objects.none()
 
         context["sort"] = self.request.GET.get("sort", "-date")
         context["selected_company"] = self.request.GET.get("company", "")
         context["selected_well"] = self.request.GET.get("well", "")
         context["date_from"] = self.request.GET.get("date_from", "")
         context["date_to"] = self.request.GET.get("date_to", "")
-
         context["total_count"] = self.get_queryset().count()
 
         query_params = self.request.GET.copy()
@@ -153,29 +218,62 @@ class DailyProductionListView(LoginRequiredMixin, ListView):
 
         context["import_form"] = DailyProductionImportForm()
         context["export_form"] = MonthlyProductionExportForm()
+        context["can_import"] = can_import_export(self.request.user)
+        context["can_export"] = can_import_export(self.request.user)
 
         return context
 
 
-class DailyProductionCreateView(LoginRequiredMixin, CreateView):
+class DailyProductionCreateView(AnyRoleScopedMixin, CreateView):
+    required_permissions = ("productions.add_dailyproduction",)
     model = DailyProduction
     form_class = DailyProductionForm
     template_name = "productions/dailyproduction_form.html"
     success_url = reverse_lazy("dailyproduction_list")
 
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        _scope_well_queryset(form, self.request.user)
+        return form
 
-class DailyProductionUpdateView(LoginRequiredMixin, UpdateView):
+
+class DailyProductionUpdateView(AnyRoleScopedMixin, UpdateView):
+    required_permissions = ("productions.change_dailyproduction",)
     model = DailyProduction
     form_class = DailyProductionForm
     template_name = "productions/dailyproduction_form.html"
     success_url = reverse_lazy("dailyproduction_list")
+    company_filter_field = "well__oil_company_id"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if not can_edit_dailyproduction_obj(request.user, self.object):
+            raise PermissionDenied("Оператор не может редактировать рапорты старше 7 дней.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        _scope_well_queryset(form, self.request.user)
+        return form
 
 
-class DailyProductionDeleteView(LoginRequiredMixin, DeleteView):
+class DailyProductionDeleteView(AnyRoleScopedMixin, DeleteView):
+    required_permissions = ("productions.delete_dailyproduction",)
     model = DailyProduction
     template_name = "productions/dailyproduction_confirm_delete.html"
     success_url = reverse_lazy("dailyproduction_list")
+    company_filter_field = "well__oil_company_id"
 
+    def dispatch(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if not can_delete_dailyproduction_obj(request.user, self.object):
+            raise PermissionDenied("Оператор не может удалять рапорты старше 7 дней.")
+        return super().dispatch(request, *args, **kwargs)
+
+
+# ---------------------------------------------------------------------------
+# Импорт / экспорт — только Admin и Manager
+# ---------------------------------------------------------------------------
 
 def _enqueue_import_job(job_id: int) -> bool:
     try:
@@ -186,7 +284,6 @@ def _enqueue_import_job(job_id: int) -> bool:
         return True
     except Exception:
         logger.exception("Не удалось отправить задачу импорта %s в Celery.", job_id)
-
         try:
             job = DailyProductionImportJob.objects.get(pk=job_id)
             job.mark_failed(
@@ -194,7 +291,6 @@ def _enqueue_import_job(job_id: int) -> bool:
             )
         except DailyProductionImportJob.DoesNotExist:
             pass
-
         return False
 
 
@@ -207,7 +303,6 @@ def _enqueue_export_job(job_id: int) -> bool:
         return True
     except Exception:
         logger.exception("Не удалось отправить задачу экспорта %s в Celery.", job_id)
-
         try:
             job = MonthlyProductionExportJob.objects.get(pk=job_id)
             job.mark_failed(
@@ -215,26 +310,23 @@ def _enqueue_export_job(job_id: int) -> bool:
             )
         except MonthlyProductionExportJob.DoesNotExist:
             pass
-
         return False
 
 
-class DailyProductionImportView(LoginRequiredMixin, FormView):
+class DailyProductionImportView(AdminOrManagerMixin, FormView):
+    required_permissions = ("productions.add_dailyproduction",)
     form_class = DailyProductionImportForm
     success_url = reverse_lazy("dailyproduction_list")
 
     def form_valid(self, form):
         uploaded_file = form.cleaned_data["file"]
-
         with transaction.atomic():
             import_job = DailyProductionImportJob.objects.create(
                 file=uploaded_file,
                 uploaded_by=self.request.user,
                 status=DailyProductionImportJob.Status.PENDING,
             )
-
         queued = _enqueue_import_job(import_job.id)
-
         if queued:
             messages.success(
                 self.request,
@@ -244,10 +336,7 @@ class DailyProductionImportView(LoginRequiredMixin, FormView):
         else:
             messages.error(
                 self.request,
-                (
-                    f"Файл '{uploaded_file.name}' был загружен, но задачу не удалось "
-                    f"отправить в очередь. Проверь Redis/Celery."
-                ),
+                f"Файл '{uploaded_file.name}' был загружен, но задачу не удалось отправить в очередь.",
             )
             return redirect(self.success_url)
 
@@ -256,14 +345,14 @@ class DailyProductionImportView(LoginRequiredMixin, FormView):
         return redirect(self.success_url)
 
 
-class MonthlyProductionExportView(LoginRequiredMixin, FormView):
+class MonthlyProductionExportView(AdminOrManagerMixin, FormView):
+    required_permissions = ("productions.view_dailyproduction",)
     form_class = MonthlyProductionExportForm
     success_url = reverse_lazy("dailyproduction_list")
 
     def form_valid(self, form):
         year = form.cleaned_data["year"]
         month = form.cleaned_data["month"]
-
         with transaction.atomic():
             export_job = MonthlyProductionExportJob.objects.create(
                 requested_by=self.request.user,
@@ -271,25 +360,17 @@ class MonthlyProductionExportView(LoginRequiredMixin, FormView):
                 month=month,
                 status=MonthlyProductionExportJob.Status.PENDING,
             )
-
         queued = _enqueue_export_job(export_job.id)
-
         if queued:
             messages.success(
                 self.request,
-                (
-                    f"Экспорт отчёта за {month:02d}.{year} поставлен в очередь. "
-                    f"Когда файл будет готов, страница обновится автоматически."
-                ),
+                f"Экспорт за {month:02d}.{year} поставлен в очередь.",
             )
             return redirect(f"{self.success_url}?watch_notifications=1")
         else:
             messages.error(
                 self.request,
-                (
-                    f"Запрос на экспорт за {month:02d}.{year} создан, "
-                    f"но задачу не удалось отправить в очередь."
-                ),
+                f"Запрос на экспорт за {month:02d}.{year} создан, но задачу не удалось отправить.",
             )
             return redirect(self.success_url)
 
@@ -301,25 +382,30 @@ class MonthlyProductionExportView(LoginRequiredMixin, FormView):
 class MonthlyProductionExportDownloadView(LoginRequiredMixin, View):
     def get(self, request, pk):
         queryset = MonthlyProductionExportJob.objects.all()
-
         if not request.user.is_staff:
             queryset = queryset.filter(requested_by=request.user)
-
         export_job = get_object_or_404(queryset, pk=pk)
-
         if export_job.status != MonthlyProductionExportJob.Status.SUCCESS or not export_job.file:
             messages.error(request, "Файл экспорта ещё не готов.")
             return redirect("notification_list")
-
-        response = FileResponse(
+        return FileResponse(
             export_job.file.open("rb"),
             as_attachment=True,
             filename=export_job.original_filename,
         )
-        return response
 
 
-class DashboardView(LoginRequiredMixin, TemplateView):
+# ---------------------------------------------------------------------------
+# Dashboard — Admin и Manager; Operator — 403
+# ---------------------------------------------------------------------------
+
+class DashboardView(AdminOrManagerMixin, TemplateView):
+    required_permissions = (
+        "companies.view_oilcompany",
+        "productions.view_well",
+        "productions.view_dailyproduction",
+        "accounts.view_profile",
+    )
     template_name = "productions/dashboard.html"
 
     def _get_cache_version(self):
@@ -367,7 +453,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         if date_from:
             reports_qs = reports_qs.filter(date__gte=date_from)
-
         if date_to:
             reports_qs = reports_qs.filter(date__lte=date_to)
 
@@ -375,8 +460,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             reports_qs.values("date")
             .annotate(
                 total_oil=Coalesce(
-                    Sum(oil_formula),
-                    0,
+                    Sum(oil_formula), 0,
                     output_field=DecimalField(max_digits=14, decimal_places=4),
                 )
             )
@@ -390,8 +474,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             reports_qs.values("well__name")
             .annotate(
                 total_oil=Coalesce(
-                    Sum(oil_formula),
-                    0,
+                    Sum(oil_formula), 0,
                     output_field=DecimalField(max_digits=14, decimal_places=4),
                 )
             )
@@ -406,16 +489,14 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             .annotate(wells_count=Count("id"))
             .order_by("oil_company__name")
         )
-
         pie_labels = [item["oil_company__name"] for item in wells_by_company]
         pie_data = [item["wells_count"] for item in wells_by_company]
 
         users_by_company = (
-            profiles_qs.values("oil_company__name")
+            profiles_qs.exclude(oil_company__isnull=True).values("oil_company__name")
             .annotate(users_count=Count("id"))
             .order_by("oil_company__name")
         )
-
         doughnut_labels = [item["oil_company__name"] for item in users_by_company]
         doughnut_data = [item["users_count"] for item in users_by_company]
 
@@ -436,16 +517,14 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     def _get_dashboard_payload(self, company_ids, date_from, date_to):
         cache_key = self._build_cache_key(company_ids, date_from, date_to)
-
         try:
             cached_payload = cache.get(cache_key)
             if cached_payload is not None:
                 return cached_payload, "hit"
         except Exception:
-            cached_payload = None
+            pass
 
         payload = self._build_payload(company_ids, date_from, date_to)
-
         try:
             cache.set(cache_key, payload, settings.DASHBOARD_CACHE_TIMEOUT)
             return payload, "miss"
@@ -454,16 +533,24 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        user = self.request.user
 
-        company_ids = self.request.GET.getlist("company")
-        company_ids = [company_id for company_id in company_ids if company_id]
+        if is_admin(user):
+            company_ids = [cid for cid in self.request.GET.getlist("company") if cid]
+            context["companies"] = OilCompany.objects.order_by("name")
+        else:
+            user_company = get_user_company(user)
+            company_ids = [str(user_company.id)] if user_company else []
+            context["companies"] = (
+                OilCompany.objects.filter(id=user_company.id)
+                if user_company else OilCompany.objects.none()
+            )
 
         date_from = self.request.GET.get("date_from", "")
         date_to = self.request.GET.get("date_to", "")
 
         payload, cache_state = self._get_dashboard_payload(company_ids, date_from, date_to)
 
-        context["companies"] = OilCompany.objects.order_by("name")
         context["selected_companies"] = company_ids
         context["date_from"] = date_from
         context["date_to"] = date_to
@@ -476,14 +563,39 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         context["line_labels"] = json.dumps(payload["line_labels"], ensure_ascii=False)
         context["line_data"] = json.dumps(payload["line_data"])
-
         context["bar_labels"] = json.dumps(payload["bar_labels"], ensure_ascii=False)
         context["bar_data"] = json.dumps(payload["bar_data"])
-
         context["pie_labels"] = json.dumps(payload["pie_labels"], ensure_ascii=False)
         context["pie_data"] = json.dumps(payload["pie_data"])
-
         context["doughnut_labels"] = json.dumps(payload["doughnut_labels"], ensure_ascii=False)
         context["doughnut_data"] = json.dumps(payload["doughnut_data"])
 
+        context["is_admin"] = is_admin(user)
+        context["is_manager"] = is_manager(user)
+
         return context
+
+
+# ---------------------------------------------------------------------------
+# Вспомогательные функции форм
+# ---------------------------------------------------------------------------
+
+def _scope_company_in_form(form, user) -> None:
+    if is_admin(user):
+        return
+    user_company = get_user_company(user)
+    if user_company and "oil_company" in form.fields:
+        form.fields["oil_company"].queryset = OilCompany.objects.filter(id=user_company.id)
+        form.fields["oil_company"].initial = user_company
+
+
+def _scope_well_queryset(form, user) -> None:
+    if is_admin(user):
+        return
+    user_company = get_user_company(user)
+    if user_company:
+        form.fields["well"].queryset = (
+            Well.objects.filter(oil_company=user_company).select_related("oil_company")
+        )
+    else:
+        form.fields["well"].queryset = Well.objects.none()

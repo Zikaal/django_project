@@ -23,11 +23,13 @@ class Profile(models.Model):
         on_delete=models.CASCADE,
         related_name="employees",
         verbose_name="Нефтяная компания",
+        null=True,
+        blank=True,
         error_messages={
             "blank": "Выберите нефтяную компанию.",
             "invalid": "Выберите корректную нефтяную компанию.",
-        },
-    )
+            },
+        )
     bio = models.TextField(
         "О себе",
         blank=True,  # рекомендуется добавить, если поле не обязательно

@@ -119,6 +119,7 @@ class WellForm(forms.ModelForm):
             "longitude",
         ]
 
+
 class DailyProductionImportForm(forms.Form):
     file = forms.FileField(
         label="Excel-файл с рапортами",

@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand
 
 from accounts.models import Profile
@@ -35,5 +36,15 @@ class Command(BaseCommand):
                 "phone_number": "+7 777 000 00 00",
             },
         )
+
+        # Добавляем суперпользователя в группу Admin (если она существует)
+        admin_group = Group.objects.filter(name="Admin").first()
+        if admin_group:
+            user.groups.add(admin_group)
+            self.stdout.write(self.style.SUCCESS(f"Пользователь добавлен в группу «Admin»"))
+        else:
+            self.stdout.write(
+                self.style.WARNING("Группа «Admin» не найдена. Запустите: python manage.py create_groups")
+            )
 
         self.stdout.write(self.style.SUCCESS(f"Суперпользователь {username} успешно создан! Пароль: {password}"))
