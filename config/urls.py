@@ -26,6 +26,10 @@ urlpatterns = [
     path("productions/", include("productions.urls")),
     path("companies/", include("companies.urls")),
     path("notifications/", include("notifications.urls")),
+    path("api-auth/", include("rest_framework.urls")),
+
+    path("api/v1/auth/", include("api.auth_urls")),
+    path("api/v1/", include("api.urls")),
 ]
 
 if settings.DEBUG:

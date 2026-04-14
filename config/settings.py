@@ -48,11 +48,14 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "accounts.apps.AccountsConfig",
+    "rest_framework",
+    "rest_framework.authtoken",
     "productions",
     "companies",
     "tailwind",
     "theme",
     "notifications.apps.NotificationsConfig",
+    "api",
 ]
 
 MIDDLEWARE = [
@@ -129,6 +132,20 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    ],
+    "EXCEPTION_HANDLER": "api.exceptions.custom_exception_handler",
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
