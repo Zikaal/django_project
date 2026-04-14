@@ -15,6 +15,7 @@ from .models import DailyProductionImportJob, MonthlyProductionExportJob
 from .services.excel_export import build_monthly_production_report
 from .services.excel_import import process_daily_productions_excel
 
+from productions.signals import bump_dashboard_cache_version, bump_export_cache_version
 
 def _get_export_cache_version():
     try:
@@ -203,6 +204,10 @@ def import_daily_productions(self, import_job_id: int):
                 skipped_count=result["skipped_count"],
                 errors_preview=result["errors"],
             )
+
+        # ВАЖНО: после успешного импорта инвалидируем кэш аналитики и экспорта
+        bump_dashboard_cache_version()
+        bump_export_cache_version()
 
         job.refresh_from_db()
         _create_import_notification(job)

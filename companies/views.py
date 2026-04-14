@@ -1,44 +1,43 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
-
-from accounts.mixins import AdminOrManagerMixin, AdminRequiredMixin
+from accounts.models import Profile
+from productions.models import Well
+from accounts.mixins import AdminOrManagerScopedMixin, AdminRequiredMixin
 from accounts.utils import get_user_company, is_admin
 from .models import OilCompany
+from django.db.models import Prefetch
 
-
-class OilCompanyListView(AdminOrManagerMixin, ListView):
-    """
-    Список нефтяных компаний.
-
-    Admin — видит все компании, может фильтровать по региону.
-    Manager — видит только свою компанию.
-    Operator — доступа нет (403).
-    """
-
+class OilCompanyListView(AdminOrManagerScopedMixin, ListView):
     model = OilCompany
     template_name = "companies/company_list.html"
     context_object_name = "companies"
     paginate_by = 20
+    company_filter_field = "id"
 
     def get_queryset(self):
-        sort = self.request.GET.get("sort", "name")
+        queryset = (
+            super()
+            .get_queryset()
+            .prefetch_related(
+                Prefetch("wells", queryset=Well.objects.order_by("name")),
+                Prefetch(
+                    "employees",
+                    queryset=Profile.objects.select_related("user", "oil_company")
+                ),
+            )
+        )
+
         region = self.request.GET.get("region", "")
+        sort = self.request.GET.get("sort", "name")
 
-        queryset = OilCompany.objects.prefetch_related("employees__user", "wells")
+        if region:
+            queryset = queryset.filter(region__icontains=region)
 
-        if not is_admin(self.request.user):
-            # Manager видит только свою компанию
-            user_company = get_user_company(self.request.user)
-            queryset = queryset.filter(id=user_company.id) if user_company else queryset.none()
-        else:
-            if region:
-                queryset = queryset.filter(region__icontains=region)
-
-        if sort == "region":
-            queryset = queryset.order_by("region", "name")
-        elif sort == "-name":
+        if sort == "-name":
             queryset = queryset.order_by("-name")
+        elif sort == "region":
+            queryset = queryset.order_by("region", "name")
         else:
             queryset = queryset.order_by("name")
 

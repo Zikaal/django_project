@@ -12,7 +12,7 @@
                 <p class="mt-1 text-sm text-slate-500">Всего скважин: {{ total_count }}</p>
             </div>
 
-            {% if request.user|can_manage_wells_filter %}
+            {% if can_manage_wells %}
                 <a
                     href="{% url 'well_create' %}"
                     class="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto"

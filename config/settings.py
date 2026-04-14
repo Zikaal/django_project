@@ -50,15 +50,17 @@ INSTALLED_APPS = [
     "accounts.apps.AccountsConfig",
     "rest_framework",
     "rest_framework.authtoken",
-    "productions",
+    "productions.apps.ProductionsConfig",
     "companies",
     "tailwind",
     "theme",
     "notifications.apps.NotificationsConfig",
     "api",
+    "debug_toolbar",
 ]
 
 MIDDLEWARE = [
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -66,6 +68,10 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
+INTERNAL_IPS = [
+    "127.0.0.1",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -173,7 +179,6 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1")
-REDIS_CACHE_URL = os.environ.get("REDIS_CACHE_URL", "redis://127.0.0.1:6379/2")
 
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
@@ -193,14 +198,29 @@ DASHBOARD_CACHE_VERSION_KEY = "dashboard:version"
 EXPORT_CACHE_TIMEOUT = int(os.environ.get("EXPORT_CACHE_TIMEOUT", 60 * 60 * 12))
 EXPORT_CACHE_VERSION_KEY = "exports:monthly:version"
 
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": REDIS_CACHE_URL,
-        "TIMEOUT": 300,
-        "KEY_PREFIX": "base_project",
+REDIS_CACHE_URL = os.getenv("REDIS_CACHE_URL", "")
+
+if REDIS_CACHE_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_CACHE_URL,
+            "KEY_PREFIX": "oil_production",
+            "TIMEOUT": 3600,
+        }
     }
-}
+else:
+    # fallback для локальной разработки без Redis
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "oil-production-local-cache",
+            "TIMEOUT": 3600,
+        }
+    }
+
+DASHBOARD_CACHE_TIMEOUT = 3600
+DASHBOARD_CACHE_VERSION_KEY = "dashboard_cache_version"
 
 
 # Email

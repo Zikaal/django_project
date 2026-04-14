@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load access_tags %}
 
 {% block title %}Суточные рапорты{% endblock %}
 
@@ -65,7 +64,7 @@
                     </button>
                 {% endif %}
 
-                {% if request.user|can_create_reports_filter %}
+                {% if can_create_reports %}
                     <a
                         href="{% url 'dailyproduction_create' %}"
                         class="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto"
@@ -187,9 +186,6 @@
         {% if reports %}
             <div class="space-y-4 px-4 py-5 sm:px-6 xl:hidden">
                 {% for report in reports %}
-                    {% can_edit_report_obj request.user report as can_edit_obj %}
-                    {% can_delete_report_obj request.user report as can_delete_obj %}
-
                     <div class="rounded-3xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4 shadow-sm sm:p-5">
                         <div class="flex items-start gap-4">
                             <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-xs font-bold text-indigo-700">
@@ -248,9 +244,9 @@
                                     </div>
                                 </div>
 
-                                {% if can_edit_obj or can_delete_obj %}
+                                {% if report.id in editable_report_ids or report.id in deletable_report_ids %}
                                     <div class="mt-4 flex flex-col gap-2 sm:flex-row">
-                                        {% if can_edit_obj %}
+                                        {% if report.id in editable_report_ids %}
                                             <a
                                                 href="{% url 'dailyproduction_update' report.pk %}"
                                                 class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
@@ -259,7 +255,7 @@
                                             </a>
                                         {% endif %}
 
-                                        {% if can_delete_obj %}
+                                        {% if report.id in deletable_report_ids %}
                                             <a
                                                 href="{% url 'dailyproduction_delete' report.pk %}"
                                                 class="inline-flex w-full items-center justify-center rounded-2xl border border-rose-200 bg-white px-3 py-2.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 sm:w-auto"
@@ -299,9 +295,6 @@
 
                     <tbody class="divide-y divide-slate-100">
                         {% for report in reports %}
-                            {% can_edit_report_obj request.user report as can_edit_obj %}
-                            {% can_delete_report_obj request.user report as can_delete_obj %}
-
                             <tr class="hover:bg-slate-50/80">
                                 <td class="px-6 py-4 text-sm text-slate-600">{{ report.well.oil_company.name|default:"—" }}</td>
 
@@ -330,9 +323,9 @@
                                 </td>
 
                                 <td class="px-6 py-4">
-                                    {% if can_edit_obj or can_delete_obj %}
+                                    {% if report.id in editable_report_ids or report.id in deletable_report_ids %}
                                         <div class="flex items-center gap-2">
-                                            {% if can_edit_obj %}
+                                            {% if report.id in editable_report_ids %}
                                                 <a
                                                     href="{% url 'dailyproduction_update' report.pk %}"
                                                     class="inline-flex items-center rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
@@ -341,7 +334,7 @@
                                                 </a>
                                             {% endif %}
 
-                                            {% if can_delete_obj %}
+                                            {% if report.id in deletable_report_ids %}
                                                 <a
                                                     href="{% url 'dailyproduction_delete' report.pk %}"
                                                     class="inline-flex items-center rounded-xl border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"

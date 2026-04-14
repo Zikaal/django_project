@@ -16,6 +16,8 @@ from django.views.generic.edit import CreateView, DeleteView, FormView, UpdateVi
 from django.db import transaction
 from django.db.models import Count, F, Sum, Value, DecimalField, ExpressionWrapper
 from django.db.models.functions import Coalesce
+from accounts.utils import can_manage_wells
+from accounts.utils import get_user_company, get_user_role, is_admin, is_manager
 
 from accounts.mixins import (
     AdminOrManagerMixin,
@@ -28,9 +30,7 @@ from accounts.utils import (
     can_import_export,
     can_edit_dailyproduction_obj,
     can_delete_dailyproduction_obj,
-    get_user_company,
-    is_admin,
-    is_manager,
+    can_create_reports,
 )
 from companies.models import OilCompany
 from .forms import (
@@ -69,7 +69,6 @@ class WellListView(AdminOrManagerScopedMixin, ListView):
 
         sort = self.request.GET.get("sort", "name")
 
-        # Admin может дополнительно фильтровать по компании через URL
         if is_admin(self.request.user):
             company_id = self.request.GET.get("company", "")
             if company_id:
@@ -86,7 +85,7 @@ class WellListView(AdminOrManagerScopedMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
+        
         if is_admin(self.request.user):
             context["companies"] = OilCompany.objects.order_by("name")
         else:
@@ -95,15 +94,16 @@ class WellListView(AdminOrManagerScopedMixin, ListView):
                 OilCompany.objects.filter(id=user_company.id)
                 if user_company else OilCompany.objects.none()
             )
-
+            
         context["selected_company"] = self.request.GET.get("company", "")
         context["sort"] = self.request.GET.get("sort", "name")
         context["total_count"] = self.get_queryset().count()
-
+        context["can_manage_wells"] = can_manage_wells(self.request.user)
+        
         query_params = self.request.GET.copy()
         query_params.pop("page", None)
         context["query_string"] = query_params.urlencode()
-
+        
         return context
 
 
@@ -157,7 +157,11 @@ class DailyProductionListView(AnyRoleScopedMixin, ListView):
     company_filter_field = "well__oil_company_id"
 
     def get_queryset(self):
-        queryset = super().get_queryset().select_related("well", "well__oil_company")
+        queryset = (
+            super()
+            .get_queryset()
+            .select_related("well", "well__oil_company")
+        )
 
         sort = self.request.GET.get("sort", "-date")
         well_id = self.request.GET.get("well")
@@ -189,7 +193,7 @@ class DailyProductionListView(AnyRoleScopedMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
+        
         if is_admin(self.request.user):
             context["companies"] = OilCompany.objects.order_by("name")
             context["wells"] = Well.objects.select_related("oil_company").order_by("name")
@@ -199,8 +203,9 @@ class DailyProductionListView(AnyRoleScopedMixin, ListView):
                 context["companies"] = OilCompany.objects.filter(id=user_company.id)
                 context["wells"] = (
                     Well.objects.filter(oil_company=user_company)
-                    .select_related("oil_company").order_by("name")
-                )
+                    .select_related("oil_company")
+                    .order_by("name")
+                    )
             else:
                 context["companies"] = OilCompany.objects.none()
                 context["wells"] = Well.objects.none()
@@ -218,9 +223,21 @@ class DailyProductionListView(AnyRoleScopedMixin, ListView):
 
         context["import_form"] = DailyProductionImportForm()
         context["export_form"] = MonthlyProductionExportForm()
+
         context["can_import"] = can_import_export(self.request.user)
         context["can_export"] = can_import_export(self.request.user)
+        context["can_create_reports"] = can_create_reports(self.request.user)
 
+        reports = context["reports"]
+        context["editable_report_ids"] = {
+            report.id for report in reports
+            if can_edit_dailyproduction_obj(self.request.user, report)
+        }
+        context["deletable_report_ids"] = {
+            report.id for report in reports
+            if can_delete_dailyproduction_obj(self.request.user, report)
+        }
+        
         return context
 
 
@@ -418,10 +435,15 @@ class DashboardView(AdminOrManagerMixin, TemplateView):
         except Exception:
             return 1
 
-    def _build_cache_key(self, company_ids, date_from, date_to):
+    def _build_cache_key(self, user, company_ids, date_from, date_to):
+        user_company = get_user_company(user)
+        
         raw = json.dumps(
             {
-                "company_ids": sorted(company_ids),
+                "scope": "dashboard_analytics",
+                "role": get_user_role(user),
+                "user_company_id": user_company.id if user_company else None,
+                "company_ids": sorted(str(cid) for cid in company_ids),
                 "date_from": date_from or "",
                 "date_to": date_to or "",
                 "version": self._get_cache_version(),
@@ -429,6 +451,7 @@ class DashboardView(AdminOrManagerMixin, TemplateView):
             sort_keys=True,
             ensure_ascii=False,
         )
+        
         digest = hashlib.md5(raw.encode("utf-8")).hexdigest()
         return f"dashboard:analytics:{digest}"
 
@@ -442,8 +465,8 @@ class DashboardView(AdminOrManagerMixin, TemplateView):
 
         reports_qs = DailyProduction.objects.select_related("well", "well__oil_company")
         wells_qs = Well.objects.select_related("oil_company")
-        profiles_qs = Profile.objects.select_related("oil_company")
-        companies_qs = OilCompany.objects.all()
+        profiles_qs = Profile.objects.select_related("oil_company", "user")
+        companies_qs = OilCompany.objects.prefetch_related("wells")
 
         if company_ids:
             reports_qs = reports_qs.filter(well__oil_company_id__in=company_ids)
@@ -515,16 +538,17 @@ class DashboardView(AdminOrManagerMixin, TemplateView):
             "doughnut_data": doughnut_data,
         }
 
-    def _get_dashboard_payload(self, company_ids, date_from, date_to):
-        cache_key = self._build_cache_key(company_ids, date_from, date_to)
+    def _get_dashboard_payload(self, user, company_ids, date_from, date_to):
+        cache_key = self._build_cache_key(user, company_ids, date_from, date_to)
         try:
             cached_payload = cache.get(cache_key)
             if cached_payload is not None:
                 return cached_payload, "hit"
         except Exception:
             pass
-
+        
         payload = self._build_payload(company_ids, date_from, date_to)
+        
         try:
             cache.set(cache_key, payload, settings.DASHBOARD_CACHE_TIMEOUT)
             return payload, "miss"
@@ -549,7 +573,7 @@ class DashboardView(AdminOrManagerMixin, TemplateView):
         date_from = self.request.GET.get("date_from", "")
         date_to = self.request.GET.get("date_to", "")
 
-        payload, cache_state = self._get_dashboard_payload(company_ids, date_from, date_to)
+        payload, cache_state = self._get_dashboard_payload(user, company_ids, date_from, date_to)
 
         context["selected_companies"] = company_ids
         context["date_from"] = date_from
