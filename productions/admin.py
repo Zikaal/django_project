@@ -1,6 +1,11 @@
 from django.contrib import admin
 
-from .models import DailyProduction, DailyProductionImportJob, Well
+from .models import (
+    DailyProduction,
+    DailyProductionImportJob,
+    ProductionAuditLog,
+    Well,
+)
 
 
 @admin.register(Well)
@@ -46,3 +51,60 @@ class DailyProductionImportJobAdmin(admin.ModelAdmin):
         "started_at",
         "finished_at",
     )
+
+
+@admin.register(ProductionAuditLog)
+class ProductionAuditLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "changed_at",
+        "action",
+        "changed_by_username",
+        "well_name_snapshot",
+        "report_date_snapshot",
+        "field_name",
+        "old_value",
+        "new_value",
+    )
+    list_filter = (
+        "action",
+        "changed_at",
+        "field_name",
+        "well",
+        "changed_by",
+    )
+    search_fields = (
+        "changed_by_username",
+        "changed_by__username",
+        "changed_by__email",
+        "well_name_snapshot",
+        "well__name",
+        "field_name",
+        "field_verbose_name",
+        "message",
+    )
+    ordering = ("-changed_at",)
+    readonly_fields = (
+        "daily_production",
+        "well",
+        "changed_by",
+        "changed_by_username",
+        "well_name_snapshot",
+        "report_date_snapshot",
+        "action",
+        "field_name",
+        "field_verbose_name",
+        "old_value",
+        "new_value",
+        "message",
+        "changed_at",
+    )
+
+    list_select_related = ("daily_production", "well", "changed_by")
+    date_hierarchy = "changed_at"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False

@@ -66,6 +66,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "accounts.middleware.CurrentUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -191,9 +192,6 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 60 * 30  # 30 минут
 
-# Dashboard cache
-DASHBOARD_CACHE_TIMEOUT = int(os.environ.get("DASHBOARD_CACHE_TIMEOUT", 600))
-DASHBOARD_CACHE_VERSION_KEY = "dashboard:version"
 
 EXPORT_CACHE_TIMEOUT = int(os.environ.get("EXPORT_CACHE_TIMEOUT", 60 * 60 * 12))
 EXPORT_CACHE_VERSION_KEY = "exports:monthly:version"

@@ -139,6 +139,102 @@ class DailyProduction(models.Model):
         return self.liquid_debit * (Decimal("1") - self.water_cut / Decimal("100")) * self.oil_density
 
 
+class ProductionAuditLog(models.Model):
+    class Action(models.TextChoices):
+        CREATE = "create", "Создание"
+        UPDATE = "update", "Изменение"
+        DELETE = "delete", "Удаление"
+
+    daily_production = models.ForeignKey(
+        DailyProduction,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+        verbose_name="Суточный рапорт",
+    )
+    well = models.ForeignKey(
+        Well,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+        verbose_name="Скважина",
+    )
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="production_audit_logs",
+        verbose_name="Пользователь",
+    )
+
+    # Snapshot-поля, чтобы история не терялась даже если связанные объекты потом изменятся/удалятся
+    changed_by_username = models.CharField(
+        "Имя пользователя (снимок)",
+        max_length=150,
+        blank=True,
+    )
+    well_name_snapshot = models.CharField(
+        "Название скважины (снимок)",
+        max_length=100,
+        blank=True,
+    )
+    report_date_snapshot = models.DateField(
+        "Дата рапорта (снимок)",
+        null=True,
+        blank=True,
+    )
+
+    action = models.CharField(
+        "Тип действия",
+        max_length=20,
+        choices=Action.choices,
+        default=Action.UPDATE,
+    )
+    field_name = models.CharField(
+        "Техническое имя поля",
+        max_length=100,
+        blank=True,
+    )
+    field_verbose_name = models.CharField(
+        "Название поля",
+        max_length=255,
+        blank=True,
+    )
+    old_value = models.TextField(
+        "Старое значение",
+        blank=True,
+    )
+    new_value = models.TextField(
+        "Новое значение",
+        blank=True,
+    )
+    message = models.TextField(
+        "Текст лога",
+        blank=True,
+    )
+    changed_at = models.DateTimeField(
+        "Дата и время изменения",
+        auto_now_add=True,
+    )
+
+    class Meta:
+        verbose_name = "Журнал аудита рапортов"
+        verbose_name_plural = "Журнал аудита рапортов"
+        ordering = ["-changed_at"]
+        indexes = [
+            models.Index(fields=["-changed_at"]),
+            models.Index(fields=["action"]),
+            models.Index(fields=["field_name"]),
+        ]
+
+    def __str__(self):
+        field_part = f" / {self.field_name}" if self.field_name else ""
+        well_part = self.well_name_snapshot or (self.well.name if self.well else "—")
+        return f"{self.get_action_display()}{field_part} / {well_part} / {self.changed_at:%Y-%m-%d %H:%M}"
+
 class DailyProductionImportJob(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Ожидает"
