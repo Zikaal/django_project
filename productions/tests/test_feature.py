@@ -8,11 +8,26 @@ from django.urls import reverse
 from companies.models import OilCompany
 from productions.models import DailyProduction, Well
 
+# Получаем активную модель пользователя проекта.
 User = get_user_model()
 
 
 class WellFeatureTests(TestCase):
+    """
+    Feature-тесты для пользовательских сценариев работы со скважинами.
+
+    Что проверяют:
+    - доступ к странице создания скважины;
+    - поведение для гостя;
+    - успешное создание скважины через HTML-форму.
+    """
+
     def setUp(self):
+        """
+        Подготавливаем базовые тестовые данные:
+        - компанию, к которой будет привязана скважина;
+        - обычного пользователя, через которого тестируем сценарии.
+        """
         self.company = OilCompany.objects.create(
             name="North Oil",
             region="Atyrau",
@@ -23,12 +38,28 @@ class WellFeatureTests(TestCase):
         )
 
     def test_guest_cannot_open_well_create_page(self):
+        """
+        Гость не должен иметь доступ к странице создания скважины.
+
+        Ожидаем:
+        - редирект (302);
+        - переход на страницу логина.
+        """
         response = self.client.get(reverse("well_create"))
 
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse("login"), response.url)
 
     def test_authenticated_user_can_create_well(self):
+        """
+        Проверяем, что авторизованный пользователь может отправить форму
+        создания скважины и после этого:
+        - получить редирект на список скважин;
+        - увидеть, что запись реально появилась в БД.
+
+        Это именно feature-тест:
+        он проверяет не только форму, но и view + URL + redirect + сохранение.
+        """
         self.client.force_login(self.user)
 
         response = self.client.post(
@@ -49,7 +80,21 @@ class WellFeatureTests(TestCase):
 
 
 class DailyProductionFeatureTests(TestCase):
+    """
+    Feature-тесты для пользовательских сценариев работы с суточными рапортами.
+
+    Что проверяют:
+    - успешное создание рапорта через форму;
+    - отказ при попытке создать дубликат well + date.
+    """
+
     def setUp(self):
+        """
+        Подготавливаем тестовые данные:
+        - компанию;
+        - пользователя;
+        - скважину, к которой будут привязаны рапорты.
+        """
         self.company = OilCompany.objects.create(
             name="South Oil",
             region="Aktobe",
@@ -68,6 +113,15 @@ class DailyProductionFeatureTests(TestCase):
         )
 
     def test_authenticated_user_can_create_daily_production(self):
+        """
+        Проверяем стандартный сценарий:
+        авторизованный пользователь отправляет форму и успешно создает рапорт.
+
+        Ожидаем:
+        - HTTP 302 после POST;
+        - редирект на список рапортов;
+        - наличие новой записи в БД.
+        """
         self.client.force_login(self.user)
 
         response = self.client.post(
@@ -92,6 +146,17 @@ class DailyProductionFeatureTests(TestCase):
         )
 
     def test_duplicate_daily_production_is_rejected(self):
+        """
+        Проверяем защиту от дублей.
+
+        Сначала создаем рапорт на ту же скважину и дату,
+        затем пытаемся отправить форму еще раз.
+
+        Ожидаем:
+        - страница не делает редирект, а возвращается с ошибкой (HTTP 200);
+        - в ответе есть сообщение о дублировании;
+        - количество записей в БД остается равным 1.
+        """
         DailyProduction.objects.create(
             well=self.well,
             date=date(2026, 4, 2),

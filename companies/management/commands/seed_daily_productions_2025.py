@@ -8,9 +8,23 @@ from productions.models import DailyProduction, Well
 
 
 class Command(BaseCommand):
+    """
+    Management command для генерации DailyProduction
+    для каждой скважины на каждый день 2025 года.
+
+    Полезна для:
+    - тестирования аналитики и dashboard;
+    - проверки пагинации и фильтрации по датам;
+    - наполнения базы большим объемом данных.
+    """
+
     help = "Создает DailyProduction для каждой скважины на каждый день 2025 года"
 
     def handle(self, *args, **options):
+        """
+        Проходит по всем скважинам и для каждой даты 2025 года
+        создает запись DailyProduction, если ее еще нет.
+        """
         start_date = date(2025, 1, 1)
         end_date = date(2025, 12, 31)
 
@@ -41,4 +55,8 @@ class Command(BaseCommand):
 
                 current_date += timedelta(days=1)
 
-        self.stdout.write(self.style.SUCCESS(f"Готово. Создано записей DailyProduction: {total_created}"))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Готово. Создано записей DailyProduction: {total_created}"
+            )
+        )

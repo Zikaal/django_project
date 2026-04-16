@@ -5,6 +5,13 @@ from .models import DailyProduction, Well
 
 
 class WellShortSerializer(serializers.ModelSerializer):
+    """
+    Короткий сериализатор скважины для вложенного вывода в API.
+
+    Используется внутри DailyProductionReadSerializer,
+    чтобы не тащить полную модель скважины во все ответы.
+    """
+
     class Meta:
         model = Well
         fields = [
@@ -20,7 +27,13 @@ class WellShortSerializer(serializers.ModelSerializer):
 class DailyProductionCreateSerializer(serializers.ModelSerializer):
     """
     Сериализатор для мобильной отправки суточного рапорта.
-    Принимает well как PK и валидирует доступ пользователя к этой скважине.
+
+    Что делает:
+    - принимает well как PK;
+    - валидирует авторизацию и роль пользователя;
+    - проверяет, что пользователь имеет доступ к выбранной скважине;
+    - проверяет корректность числовых значений;
+    - проверяет уникальность пары well + date.
     """
 
     class Meta:
@@ -35,7 +48,12 @@ class DailyProductionCreateSerializer(serializers.ModelSerializer):
             "oil_density",
         ]
         read_only_fields = ["id"]
+
+        # Отключаем авто-валидаторы DRF, потому что бизнес-валидацию
+        # мы делаем вручную в validate() и validate_<field>().
         validators = []
+
+        # Кастомные сообщения об ошибках для API.
         extra_kwargs = {
             "well": {
                 "error_messages": {
@@ -78,9 +96,11 @@ class DailyProductionCreateSerializer(serializers.ModelSerializer):
 
     def validate_well(self, well):
         """
-        Проверяем, что пользователь может работать с этой скважиной.
-        Admin — любая скважина.
-        Manager / Operator — только скважины своей компании.
+        Проверяем доступ пользователя к выбранной скважине.
+
+        Правила:
+        - Admin может выбрать любую скважину;
+        - Manager / Operator — только скважины своей компании.
         """
         request = self.context.get("request")
         user = getattr(request, "user", None)
@@ -103,6 +123,9 @@ class DailyProductionCreateSerializer(serializers.ModelSerializer):
         return well
 
     def validate_water_cut(self, value):
+        """
+        Обводненность должна быть в диапазоне 0..100.
+        """
         if value < 0 or value > 100:
             raise serializers.ValidationError(
                 "Обводненность должна быть в диапазоне от 0 до 100."
@@ -110,32 +133,37 @@ class DailyProductionCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_work_time(self, value):
+        """
+        Время работы не может быть отрицательным.
+        """
         if value < 0:
-            raise serializers.ValidationError(
-                "Время работы не может быть отрицательным."
-            )
+            raise serializers.ValidationError("Время работы не может быть отрицательным.")
         return value
 
     def validate_liquid_debit(self, value):
+        """
+        Дебит жидкости не может быть отрицательным.
+        """
         if value < 0:
-            raise serializers.ValidationError(
-                "Дебит жидкости не может быть отрицательным."
-            )
+            raise serializers.ValidationError("Дебит жидкости не может быть отрицательным.")
         return value
 
     def validate_oil_density(self, value):
+        """
+        Плотность нефти должна быть строго больше нуля.
+        """
         if value <= 0:
-            raise serializers.ValidationError(
-                "Плотность нефти должна быть больше нуля."
-            )
+            raise serializers.ValidationError("Плотность нефти должна быть больше нуля.")
         return value
 
     def validate(self, attrs):
         """
+        Общая бизнес-валидация.
+
         Проверяем:
-        1) роль пользователя,
-        2) уникальность well + date,
-        3) дополнительные бизнес-ограничения.
+        1. что пользователь авторизован;
+        2. что у него есть одна из бизнес-ролей;
+        3. что не создается дубликат well + date.
         """
         request = self.context.get("request")
         user = getattr(request, "user", None)
@@ -161,6 +189,14 @@ class DailyProductionCreateSerializer(serializers.ModelSerializer):
 
 
 class DailyProductionReadSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор ответа для уже созданного рапорта.
+
+    Отличается от create-сериализатора тем, что:
+    - well отдается не просто как PK, а как вложенный объект;
+    - calculated_oil включается как read-only поле.
+    """
+
     well = WellShortSerializer(read_only=True)
     calculated_oil = serializers.DecimalField(
         max_digits=14,

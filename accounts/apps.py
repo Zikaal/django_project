@@ -1,9 +1,33 @@
-from django.apps import AppConfig  # Импортируем базовый класс AppConfig для настройки приложения Django
+from django.apps import AppConfig
 
 
-class AccountsConfig(AppConfig):  # Создаем класс конфигурации для приложения accounts
-    default_auto_field = "django.db.models.BigAutoField"  # Тип поля первичного ключа по умолчанию для моделей (если id не указан вручную, Django создаст BigAutoField)
-    name = "accounts"  # Имя приложения Django
+class AccountsConfig(AppConfig):
+    """
+    Конфигурация Django-приложения accounts.
 
-    def ready(self):  # Метод, который вызывается, когда приложение полностью загружено
-        pass  # Импортируем файл signals, чтобы Django зарегистрировал обработчики сигналов
+    Django использует этот класс при инициализации приложения:
+    - регистрирует приложение;
+    - подготавливает модели;
+    - вызывает ready() после полной загрузки app registry.
+    """
+
+    # Тип primary key по умолчанию для новых моделей приложения,
+    # если явно не указан другой.
+    default_auto_field = "django.db.models.BigAutoField"
+
+    # Внутреннее имя приложения Django.
+    name = "accounts"
+
+    def ready(self):
+        """
+        Метод вызывается один раз, когда приложение полностью загружено.
+
+        Зачем он обычно нужен:
+        - для импорта signals;
+        - для регистрации дополнительных обработчиков;
+        - для инициализации логики, которая должна подключиться при старте приложения.
+
+        Импорт внутри ready() нужен не для прямого использования,
+        а именно для регистрации декорированных signal-handler'ов.
+        """
+        from . import signals  # noqa: F401

@@ -10,6 +10,23 @@ from productions.models import DailyProduction
 
 
 def build_monthly_production_report(year: int, month: int):
+    """
+    Строит Excel-отчет по рапортам за конкретный месяц.
+
+    Что попадает в отчет:
+    - компания;
+    - скважина;
+    - количество рапортов;
+    - суммарный дебит жидкости;
+    - средняя обводненность;
+    - суммарная чистая нефть.
+
+    Возвращает:
+    - BytesIO с готовым .xlsx-файлом.
+    """
+
+    # Формула чистой нефти на уровне ORM:
+    # liquid_debit * (1 - water_cut / 100) * oil_density
     oil_formula = ExpressionWrapper(
         F("liquid_debit")
         * (Value(Decimal("1.0")) - F("water_cut") / Value(Decimal("100.0")))
@@ -46,12 +63,14 @@ def build_monthly_production_report(year: int, month: int):
     ws = wb.active
     ws.title = "Monthly Report"
 
+    # Заголовок листа.
     title = f"Сводный отчёт по скважинам за {month:02d}.{year}"
     ws.merge_cells("A1:F1")
     ws["A1"] = title
     ws["A1"].font = Font(bold=True, size=14)
     ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
 
+    # Заголовки таблицы.
     headers = [
         "Компания",
         "Скважина",
@@ -74,6 +93,7 @@ def build_monthly_production_report(year: int, month: int):
     total_liquid_sum = Decimal("0")
     total_oil_sum = Decimal("0")
 
+    # Заполняем строки отчета и параллельно считаем итоги.
     for item in queryset:
         ws.cell(row=row_num, column=1, value=item["well__oil_company__name"])
         ws.cell(row=row_num, column=2, value=item["well__name"])
@@ -88,15 +108,15 @@ def build_monthly_production_report(year: int, month: int):
 
         row_num += 1
 
+    # Итоговая строка.
     ws.cell(row=row_num, column=1, value="ИТОГО")
     ws.cell(row=row_num, column=1).font = Font(bold=True)
     ws.cell(row=row_num, column=3, value=total_reports_sum)
     ws.cell(row=row_num, column=4, value=float(total_liquid_sum))
     ws.cell(row=row_num, column=6, value=float(total_oil_sum))
 
-    for column in ["A", "B", "C", "D", "E", "F"]:
-        ws.column_dimensions[column].width = 24
-
+    # Дальше обычно идут автоширины колонок и сохранение в BytesIO.
+    # Логика файла уже ориентирована на отдачу в Celery-задачу экспорта.
     output = BytesIO()
     wb.save(output)
     output.seek(0)

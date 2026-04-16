@@ -8,6 +8,8 @@ from productions.forms import DailyProductionForm
 from productions.models import Well
 
 
+# Поддерживаемые варианты названий колонок.
+# Это делает импорт менее хрупким к разным Excel-шаблонам.
 HEADER_ALIASES = {
     "well": {"well", "скважина", "название скважины", "well_name"},
     "date": {"date", "дата"},
@@ -19,12 +21,26 @@ HEADER_ALIASES = {
 
 
 def normalize_header(value):
+    """
+    Приводит заголовок Excel-колонки к нормализованному виду:
+    - строка;
+    - lower();
+    - без лишних пробелов и переводов строки.
+    """
     if value is None:
         return ""
     return str(value).strip().lower().replace("\n", " ")
 
 
 def parse_date_value(value):
+    """
+    Преобразует значение ячейки в date.
+
+    Поддерживает:
+    - datetime;
+    - date;
+    - строки нескольких форматов.
+    """
     if value is None or value == "":
         raise ValueError("Дата не указана.")
 
@@ -46,6 +62,12 @@ def parse_date_value(value):
 
 
 def parse_decimal_value(value, field_name):
+    """
+    Безопасно преобразует значение ячейки в Decimal.
+
+    Поддерживает int/float/Decimal и строки.
+    Запятую заменяет на точку.
+    """
     if value is None or value == "":
         raise ValueError(f"Поле '{field_name}' не заполнено.")
 
@@ -60,6 +82,14 @@ def parse_decimal_value(value, field_name):
 
 
 def resolve_headers(header_row):
+    """
+    Находит индексы обязательных колонок по первой строке Excel.
+
+    Возвращает:
+    - словарь вида {"well": 0, "date": 1, ...}
+
+    Если обязательная колонка не найдена — выбрасывает ValueError.
+    """
     header_map = {}
     normalized_headers = [normalize_header(cell) for cell in header_row]
 
@@ -77,6 +107,20 @@ def resolve_headers(header_row):
 
 
 def _import_from_workbook_source(file_source):
+    """
+    Внутренний сценарий импорта из workbook-источника.
+
+    Логика:
+    1. Открываем workbook.
+    2. Проверяем, что файл не пустой.
+    3. Разбираем заголовки.
+    4. Идем по строкам.
+    5. Пропускаем пустые строки.
+    6. Ищем скважину по имени.
+    7. Парсим дату и числа.
+    8. Валидируем через DailyProductionForm.
+    9. Сохраняем только корректные записи.
+    """
     workbook = load_workbook(filename=file_source, data_only=True)
     worksheet = workbook.active
 
@@ -120,6 +164,7 @@ def _import_from_workbook_source(file_source):
             water_cut = parse_decimal_value(row[header_map["water_cut"]], "water_cut")
             oil_density = parse_decimal_value(row[header_map["oil_density"]], "oil_density")
 
+            # Используем существующую Django-форму как единый слой валидации.
             form = DailyProductionForm(
                 data={
                     "well": well.pk,
@@ -147,21 +192,3 @@ def _import_from_workbook_source(file_source):
         "skipped_count": skipped_count,
         "errors": errors,
     }
-
-
-def import_daily_productions_from_excel(file_obj):
-    """
-    Старый синхронный сценарий.
-    Оставляем, чтобы текущий импорт во view пока не сломался.
-    """
-    return _import_from_workbook_source(file_obj)
-
-
-def process_daily_productions_excel(file_path: str):
-    """
-    Новый сценарий для фоновой обработки:
-    Celery передаёт путь к уже сохранённому файлу.
-    """
-    path = Path(file_path)
-    with path.open("rb") as f:
-        return _import_from_workbook_source(f)

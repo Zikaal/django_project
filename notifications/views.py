@@ -10,12 +10,32 @@ from .models import Notification
 
 
 class NotificationListView(LoginRequiredMixin, ListView):
+    """
+    Список уведомлений текущего пользователя.
+
+    Доступ:
+    - только для авторизованных пользователей.
+
+    Возможности:
+    - показывает только уведомления самого пользователя;
+    - поддерживает фильтрацию по статусу: all / unread / read;
+    - использует пагинацию.
+    """
+
     model = Notification
     template_name = "notifications/notification_list.html"
     context_object_name = "notifications"
     paginate_by = 20
 
     def get_queryset(self):
+        """
+        Возвращает уведомления только текущего пользователя.
+
+        Дополнительно поддерживает GET-параметр status:
+        - all: все уведомления;
+        - unread: только непрочитанные;
+        - read: только прочитанные.
+        """
         queryset = Notification.objects.filter(recipient=self.request.user)
 
         status = self.request.GET.get("status", "all")
@@ -27,6 +47,11 @@ class NotificationListView(LoginRequiredMixin, ListView):
         return queryset.order_by("-created_at")
 
     def get_context_data(self, **kwargs):
+        """
+        Добавляет в шаблон:
+        - выбранный фильтр status;
+        - количество непрочитанных уведомлений.
+        """
         context = super().get_context_data(**kwargs)
         context["selected_status"] = self.request.GET.get("status", "all")
         context["unread_count"] = Notification.objects.filter(
@@ -37,6 +62,14 @@ class NotificationListView(LoginRequiredMixin, ListView):
 
 
 class NotificationMarkReadView(LoginRequiredMixin, View):
+    """
+    Помечает одно уведомление как прочитанное.
+
+    Важно:
+    - пользователь может менять только свои уведомления;
+    - если pk чужой, будет 404, а не доступ к чужим данным.
+    """
+
     def post(self, request, pk):
         notification = get_object_or_404(
             Notification,
@@ -44,10 +77,20 @@ class NotificationMarkReadView(LoginRequiredMixin, View):
             recipient=request.user,
         )
         notification.mark_as_read()
+
+        # Возвращаем пользователя туда, откуда он пришел,
+        # либо на общий список уведомлений.
         return redirect(request.POST.get("next") or reverse_lazy("notification_list"))
 
 
 class NotificationMarkAllReadView(LoginRequiredMixin, View):
+    """
+    Помечает все непрочитанные уведомления текущего пользователя как прочитанные.
+
+    Здесь используется bulk update, а не цикл по объектам,
+    что эффективнее по SQL-запросам.
+    """
+
     def post(self, request):
         Notification.objects.filter(
             recipient=request.user,
@@ -60,6 +103,17 @@ class NotificationMarkAllReadView(LoginRequiredMixin, View):
 
 
 class NotificationPollView(LoginRequiredMixin, View):
+    """
+    Легкий JSON-endpoint для фронтенда.
+
+    Возвращает:
+    - количество непрочитанных уведомлений;
+    - id самого нового непрочитанного уведомления.
+
+    Это удобно для периодического polling в navbar/header,
+    чтобы обновлять счетчик без полной перезагрузки страницы.
+    """
+
     def get(self, request):
         unread_qs = Notification.objects.filter(
             recipient=request.user,

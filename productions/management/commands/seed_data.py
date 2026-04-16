@@ -16,17 +16,35 @@ User = get_user_model()
 
 
 class Command(BaseCommand):
-    help = "Запуск генератора большого объема тестовых данных (seed) по аналогии с Задача 3 (php_project)"
+    """
+    Генератор большого объема тестовых данных.
+
+    Что создает:
+    - 22 нефтяные компании;
+    - сотрудников и профили;
+    - скважины;
+    - большой объем рапортов DailyProduction.
+
+    Подходит для:
+    - нагрузки на dashboard;
+    - проверки пагинации и фильтров;
+    - тестов экспорта/импорта и кэша.
+    """
+
+    help = "Запуск генератора большого объема тестовых данных (seed)"
 
     def handle(self, *args, **options):
         fake = Faker("ru_RU")
 
         self.stdout.write("Создание 22 нефтяных компаний...")
         companies = []
+
         for _ in range(22):
-            # Используем get_or_create для гарантии уникальности или просто create
             company_name = f"{fake.company()} - {fake.unique.random_number(digits=5)}"
-            company, _ = OilCompany.objects.get_or_create(name=company_name, defaults={"region": fake.city()})
+            company, _ = OilCompany.objects.get_or_create(
+                name=company_name,
+                defaults={"region": fake.city()},
+            )
             companies.append(company)
 
         self.stdout.write(f"Создано {len(companies)} компаний.")
@@ -34,7 +52,8 @@ class Command(BaseCommand):
         well_types = ["Добывающая", "Нагнетательная", "Оценочная", "Разведочная"]
         departments = ["Добыча", "Бурение", "Геология", "ИТ", "Финансы"]
 
-        # Первые X компаний, для которых будем генерировать полную историю (2025 год)
+        # Только для первых 3–5 компаний генерируется полная история по датам,
+        # чтобы база была большой, но не чрезмерной.
         full_history_companies_count = random.randint(3, 5)
 
         total_users = 0
@@ -44,10 +63,11 @@ class Command(BaseCommand):
 
         self.stdout.write("Генерация сотрудников, скважин и статистики...")
 
+        # Один и тот же захешированный пароль для ускорения массовой генерации.
         default_password = make_password("password")
 
         for company_index, company in enumerate(companies):
-            # 1. Для каждой компании генерируем 2-5 сотрудников
+            # Для каждой компании создаем 2–5 сотрудников.
             num_users = random.randint(2, 5)
             for _ in range(num_users):
                 username = f"{fake.unique.user_name()}_{random.randint(1000, 99999)}"
@@ -69,7 +89,7 @@ class Command(BaseCommand):
                 )
                 total_users += 1
 
-            # 2. Для каждой компании генерируем 2-10 скважин
+            # Для каждой компании создаем 2–10 скважин.
             num_wells = random.randint(2, 10)
             company_wells = []
             for _ in range(num_wells):
@@ -84,9 +104,8 @@ class Command(BaseCommand):
                 company_wells.append(well)
                 total_wells += 1
 
-            # 3. Генерация ежедневных показателей только для первых 3-5 компаний
+            # Только для части компаний создаем полную историю рапортов за ~365 дней.
             if company_index < full_history_companies_count:
-                # Берем первые 5 скважин из этой компании (сортируя по ID)
                 selected_wells = sorted(company_wells, key=lambda w: w.id)[:5]
 
                 for well in selected_wells:
@@ -104,15 +123,14 @@ class Command(BaseCommand):
                         )
 
         self.stdout.write("Массовая вставка рапортов в базу...")
+
         if reports_batch:
-            # Частичная вставка по 1000 записей (предотвращает нехватку памяти)
+            # bulk_create по чанкам — чтобы не съесть слишком много памяти.
             chunk_size = 1000
             for i in range(0, len(reports_batch), chunk_size):
-                chunk = reports_batch[i : i + chunk_size]
+                chunk = reports_batch[i:i + chunk_size]
                 DailyProduction.objects.bulk_create(chunk, ignore_conflicts=True)
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Завершено! Компаний: 22, Сотрудников: {total_users}, Скважин: {total_wells}, Рапортов: {len(reports_batch)}."
-            )
-        )
+        self.stdout.write(self.style.SUCCESS(f"Пользователей создано: {total_users}"))
+        self.stdout.write(self.style.SUCCESS(f"Скважин создано: {total_wells}"))
+        self.stdout.write(self.style.SUCCESS(f"Рапортов подготовлено: {len(reports_batch)}"))

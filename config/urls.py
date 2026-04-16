@@ -1,41 +1,50 @@
 """
-URL configuration for config project.
+Главная конфигурация URL-маршрутов проекта.
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+Этот файл является центральной точкой маршрутизации Django-приложения.
+Здесь подключаются:
+- админка;
+- маршруты приложений accounts / productions / companies / notifications;
+- DRF auth-маршруты;
+- API v1;
+- media-файлы в режиме DEBUG;
+- Django Debug Toolbar в режиме DEBUG.
 """
 
-from django.contrib import admin
-from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib import admin
+from django.urls import include, path
 
 urlpatterns = [
+    # Административная панель Django.
     path("admin/", admin.site.urls),
+
+    # Web-маршруты приложений проекта.
     path("accounts/", include("accounts.urls")),
     path("productions/", include("productions.urls")),
     path("companies/", include("companies.urls")),
     path("notifications/", include("notifications.urls")),
+
+    # Встроенные маршруты Django REST Framework для браузерной авторизации.
+    # Обычно используются в browsable API:
+    # - login
+    # - logout
     path("api-auth/", include("rest_framework.urls")),
 
+    # API-маршруты версии v1.
+    # auth_urls вынесены отдельно для логина/получения токена.
     path("api/v1/auth/", include("api.auth_urls")),
     path("api/v1/", include("api.urls")),
 ]
 
+# Дополнительные маршруты, которые подключаются только в режиме разработки.
 if settings.DEBUG:
+    # Раздача media-файлов через Django dev-server.
+    # В production это обычно делает nginx / object storage / CDN.
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-    # Django Debug Toolbar
+    # Подключение Django Debug Toolbar только в dev-режиме.
     import debug_toolbar
 
     urlpatterns = [

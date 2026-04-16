@@ -2,4 +2,14 @@ from django.apps import AppConfig
 
 
 class ApiConfig(AppConfig):
-    name = 'api'
+    """
+    Конфигурация Django-приложения api.
+
+    Используется Django при загрузке приложения.
+    Здесь можно:
+    - подключать signals;
+    - выполнять startup-инициализацию;
+    - хранить базовые настройки app.
+    """
+
+    name = "api"

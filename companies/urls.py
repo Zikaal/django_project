@@ -7,29 +7,31 @@ from .views import (
     OilCompanyUpdateView,
 )
 
+# URL-маршруты приложения companies.
+# Отвечают за список, создание, редактирование и удаление компаний.
 urlpatterns = [
-    # ===================================================================
-    # Маршруты для нефтяных компаний (OilCompany)
-    # ===================================================================
-    # Список всех нефтяных компаний с поддержкой фильтрации и сортировки
+    # Список нефтяных компаний.
     path(
         "",
         OilCompanyListView.as_view(),
         name="company_list",
     ),
-    # Создание новой нефтяной компании
+
+    # Создание новой компании.
     path(
         "create/",
         OilCompanyCreateView.as_view(),
         name="company_create",
     ),
-    # Редактирование существующей нефтяной компании
+
+    # Редактирование существующей компании по pk.
     path(
         "<int:pk>/edit/",
         OilCompanyUpdateView.as_view(),
         name="company_update",
     ),
-    # Удаление нефтяной компании
+
+    # Удаление компании по pk.
     path(
         "<int:pk>/delete/",
         OilCompanyDeleteView.as_view(),

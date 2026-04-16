@@ -10,7 +10,25 @@ from .models import (
 
 @admin.register(Well)
 class WellAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "oil_company", "type", "max_drilling_depth", "latitude", "longitude")
+    """
+    Админка для модели Well.
+
+    Что дает:
+    - список скважин с основными полями;
+    - поиск по названию, компании и типу;
+    - фильтрацию по компании и типу;
+    - сортировку по названию.
+    """
+
+    list_display = (
+        "id",
+        "name",
+        "oil_company",
+        "type",
+        "max_drilling_depth",
+        "latitude",
+        "longitude",
+    )
     search_fields = ("name", "oil_company__name", "type")
     list_filter = ("oil_company", "type")
     ordering = ("name",)
@@ -18,7 +36,24 @@ class WellAdmin(admin.ModelAdmin):
 
 @admin.register(DailyProduction)
 class DailyProductionAdmin(admin.ModelAdmin):
-    list_display = ("id", "well", "date", "work_time", "liquid_debit", "water_cut", "oil_density", "calculated_oil")
+    """
+    Админка для суточных рапортов DailyProduction.
+
+    Особенность:
+    - показывает calculated_oil, который считается как property модели;
+    - позволяет быстро фильтровать по дате, компании и скважине.
+    """
+
+    list_display = (
+        "id",
+        "well",
+        "date",
+        "work_time",
+        "liquid_debit",
+        "water_cut",
+        "oil_density",
+        "calculated_oil",
+    )
     search_fields = ("well__name", "well__oil_company__name")
     list_filter = ("date", "well__oil_company", "well")
     ordering = ("-date", "well__name")
@@ -26,6 +61,15 @@ class DailyProductionAdmin(admin.ModelAdmin):
 
 @admin.register(DailyProductionImportJob)
 class DailyProductionImportJobAdmin(admin.ModelAdmin):
+    """
+    Админка задач импорта.
+
+    Для чего полезна:
+    - видеть историю запусков импорта;
+    - смотреть статусы, счетчики созданных/пропущенных строк и ошибки;
+    - отлаживать Celery-задачи и проблемные Excel-файлы.
+    """
+
     list_display = (
         "id",
         "uploaded_by",
@@ -39,6 +83,8 @@ class DailyProductionImportJobAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "uploaded_at", "started_at", "finished_at")
     search_fields = ("uploaded_by__username", "uploaded_by__email", "celery_task_id")
+
+    # Эти поля вычисляются системой и не должны редактироваться руками.
     readonly_fields = (
         "status",
         "celery_task_id",
@@ -55,6 +101,15 @@ class DailyProductionImportJobAdmin(admin.ModelAdmin):
 
 @admin.register(ProductionAuditLog)
 class ProductionAuditLogAdmin(admin.ModelAdmin):
+    """
+    Админка журнала аудита рапортов.
+
+    Назначение:
+    - хранить историю создания/изменения/удаления рапортов;
+    - показывать кто, когда и что именно поменял;
+    - сохранять snapshot-данные даже если связанные объекты потом изменились.
+    """
+
     list_display = (
         "id",
         "changed_at",
@@ -84,6 +139,9 @@ class ProductionAuditLogAdmin(admin.ModelAdmin):
         "message",
     )
     ordering = ("-changed_at",)
+
+    # Аудит-лог — это исторические данные.
+    # Их нельзя создавать или редактировать вручную через admin.
     readonly_fields = (
         "daily_production",
         "well",
@@ -100,11 +158,22 @@ class ProductionAuditLogAdmin(admin.ModelAdmin):
         "changed_at",
     )
 
+    # Сразу подтягиваем связанные объекты, чтобы уменьшить число SQL-запросов в админке.
     list_select_related = ("daily_production", "well", "changed_by")
+
+    # Добавляет удобную навигацию по датам сверху в admin.
     date_hierarchy = "changed_at"
 
     def has_add_permission(self, request):
+        """
+        Запрещаем ручное создание записей аудита.
+        Они должны создаваться только автоматически через signals.
+        """
         return False
 
     def has_change_permission(self, request, obj=None):
+        """
+        Запрещаем редактирование записей аудита.
+        История должна быть неизменяемой.
+        """
         return False

@@ -10,60 +10,43 @@ from productions.models import Well
 
 
 class Command(BaseCommand):
+    """
+    Комплексная management command для заполнения проекта тестовыми данными.
+
+    Что создает:
+    - несколько нефтяных компаний;
+    - пользователей для этих компаний;
+    - профили пользователей;
+    - скважины для компаний.
+
+    Подходит для:
+    - локальной разработки;
+    - демо;
+    - первичной проверки интерфейса и связей моделей.
+    """
+
     help = "Заполняет проект тестовыми компаниями, пользователями и скважинами"
 
     def handle(self, *args, **options):
         User = get_user_model()
 
+        # Набор заранее подготовленных компаний.
         companies_data = [
-            {
-                "name": "Эмбамунайгас",
-                "region": "Атырауская область",
-                "code": "emb",
-            },
-            {
-                "name": "Озенмунайгас",
-                "region": "Мангистауская область",
-                "code": "ozm",
-            },
-            {
-                "name": "KMG Drilling & Services",
-                "region": "Астана",
-                "code": "kds",
-            },
-            {
-                "name": "Мангистаумунайгаз",
-                "region": "Мангистауская область",
-                "code": "mmg",
-            },
+            {"name": "Эмбамунайгас", "region": "Атырауская область", "code": "emb"},
+            {"name": "Озенмунайгас", "region": "Мангистауская область", "code": "ozm"},
+            {"name": "KMG Drilling & Services", "region": "Астана", "code": "kds"},
+            {"name": "Мангистаумунайгаз", "region": "Мангистауская область", "code": "mmg"},
         ]
 
+        # Справочники случайных значений для генерации пользователей.
         first_names = [
-            "Азамат",
-            "Нуржан",
-            "Ерлан",
-            "Данияр",
-            "Марат",
-            "Алия",
-            "Айгерим",
-            "Жанар",
-            "Инкар",
-            "Асель",
+            "Азамат", "Нуржан", "Ерлан", "Данияр", "Марат",
+            "Алия", "Айгерим", "Жанар", "Инкар", "Асель",
         ]
-
         last_names = [
-            "Нурбеков",
-            "Сериков",
-            "Касымов",
-            "Тлеубаев",
-            "Омаров",
-            "Ахметова",
-            "Садыкова",
-            "Ибрагимова",
-            "Жумагалиева",
-            "Каримова",
+            "Нурбеков", "Сериков", "Касымов", "Тлеубаев", "Омаров",
+            "Ахметова", "Садыкова", "Ибрагимова", "Жумагалиева", "Каримова",
         ]
-
         departments = [
             "Геология",
             "Бурение",
@@ -73,26 +56,34 @@ class Command(BaseCommand):
             "Аналитика",
         ]
 
+        # Справочники для генерации скважин.
         well_types = ["мобильная", "стационарная"]
         depths = [3000, 3500, 4200, 4500, 5500]
+
+        # Пароль для всех новых пользователей.
+        # Удобно для dev/demo, но не для production.
         default_password = "Test12345!"
 
         total_users = 0
         total_wells = 0
 
         for company_data in companies_data:
+            # Создаем компанию или получаем существующую.
             company, created = OilCompany.objects.get_or_create(
                 name=company_data["name"],
                 defaults={"region": company_data["region"]},
             )
 
+            # Если компания уже была, но регион отличается — обновляем регион.
             if not created and company.region != company_data["region"]:
                 company.region = company_data["region"]
                 company.save()
 
+            # Для каждой компании случайно генерируем число пользователей и скважин.
             user_count = random.randint(5, 10)
             well_count = random.randint(3, 5)
 
+            # Создаем пользователей компании.
             for i in range(1, user_count + 1):
                 username = f"{company_data['code']}_user_{i}"
                 email = f"{username}@example.com"
@@ -111,6 +102,7 @@ class Command(BaseCommand):
                     user.save()
                     total_users += 1
 
+                # Создаем/обновляем профиль пользователя.
                 profile, _ = Profile.objects.get_or_create(user=user)
                 profile.oil_company = company
 
@@ -122,6 +114,7 @@ class Command(BaseCommand):
 
                 profile.save()
 
+            # Создаем скважины компании.
             for i in range(1, well_count + 1):
                 well_name = f"{company_data['code'].upper()}-{i:03d}"
 
@@ -142,4 +135,6 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Тестовые данные успешно созданы."))
         self.stdout.write(self.style.SUCCESS(f"Новых пользователей создано: {total_users}"))
         self.stdout.write(self.style.SUCCESS(f"Новых скважин создано: {total_wells}"))
-        self.stdout.write(self.style.WARNING(f"Пароль для всех новых пользователей: {default_password}"))
+        self.stdout.write(
+            self.style.WARNING(f"Пароль для всех новых пользователей: {default_password}")
+        )

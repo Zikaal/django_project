@@ -8,6 +8,15 @@ from productions.models import Well
 
 
 class Command(BaseCommand):
+    """
+    Management command для генерации скважин для всех компаний.
+
+    Что делает:
+    - берет все компании из базы;
+    - для каждой компании создает от 1 до 2 скважин;
+    - не дублирует скважины с тем же именем.
+    """
+
     help = "Создает для каждой компании 1–2 скважины"
 
     def handle(self, *args, **options):
@@ -42,4 +51,6 @@ class Command(BaseCommand):
                     total_created += 1
 
         self.stdout.write(self.style.SUCCESS(f"Создано новых скважин: {total_created}"))
-        self.stdout.write(self.style.SUCCESS(f"Всего компаний обработано: {companies.count()}"))
+        self.stdout.write(
+            self.style.SUCCESS(f"Всего компаний обработано: {companies.count()}")
+        )

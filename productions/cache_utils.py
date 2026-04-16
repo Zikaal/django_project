@@ -5,7 +5,13 @@ from django.core.cache import cache
 def bump_dashboard_cache_version() -> int:
     """
     Увеличивает версию кэша dashboard.
-    Старые ключи становятся неактуальными автоматически.
+
+    Идея:
+    - dashboard кэшируется не напрямую "навсегда", а через версионированный ключ;
+    - при изменении данных мы просто увеличиваем номер версии;
+    - старые ключи автоматически перестают использоваться.
+
+    Это удобнее, чем вручную искать и удалять все связанные cache keys.
     """
     key = settings.DASHBOARD_CACHE_VERSION_KEY
 
@@ -18,5 +24,6 @@ def bump_dashboard_cache_version() -> int:
         cache.set(key, new_version, None)
         return new_version
     except Exception:
-        # Если cache временно недоступен, не ломаем приложение
+        # Если кэш временно не работает, не ломаем приложение.
+        # Просто возвращаем безопасное значение.
         return 1
