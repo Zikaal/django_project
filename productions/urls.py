@@ -19,15 +19,12 @@ from .views import (
 urlpatterns = [
     # Dashboard аналитики.
     path("dashboard/", DashboardView.as_view(), name="dashboard"),
-
     # Список суточных рапортов.
     path("", DailyProductionListView.as_view(), name="dailyproduction_list"),
-
     # CRUD для DailyProduction.
     path("create/", DailyProductionCreateView.as_view(), name="dailyproduction_create"),
     path("<int:pk>/edit/", DailyProductionUpdateView.as_view(), name="dailyproduction_update"),
     path("<int:pk>/delete/", DailyProductionDeleteView.as_view(), name="dailyproduction_delete"),
-
     # Импорт и экспорт.
     path("import/", DailyProductionImportView.as_view(), name="dailyproduction_import"),
     path("export/monthly/", MonthlyProductionExportView.as_view(), name="dailyproduction_export"),
@@ -36,7 +33,6 @@ urlpatterns = [
         MonthlyProductionExportDownloadView.as_view(),
         name="dailyproduction_export_download",
     ),
-
     # CRUD для Well.
     path("wells/", WellListView.as_view(), name="well_list"),
     path("wells/create/", WellCreateView.as_view(), name="well_create"),

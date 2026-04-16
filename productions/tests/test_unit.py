@@ -55,11 +55,7 @@ class DailyProductionUnitTests(TestCase):
             oil_density=Decimal("0.85"),
         )
 
-        expected = (
-            Decimal("100.00")
-            * (Decimal("1") - Decimal("20.00") / Decimal("100"))
-            * Decimal("0.85")
-        )
+        expected = Decimal("100.00") * (Decimal("1") - Decimal("20.00") / Decimal("100")) * Decimal("0.85")
         self.assertEqual(report.calculated_oil, expected)
 
     def test_work_time_cannot_be_more_than_24(self):

@@ -128,7 +128,7 @@ class Command(BaseCommand):
             # bulk_create по чанкам — чтобы не съесть слишком много памяти.
             chunk_size = 1000
             for i in range(0, len(reports_batch), chunk_size):
-                chunk = reports_batch[i:i + chunk_size]
+                chunk = reports_batch[i : i + chunk_size]
                 DailyProduction.objects.bulk_create(chunk, ignore_conflicts=True)
 
         self.stdout.write(self.style.SUCCESS(f"Пользователей создано: {total_users}"))

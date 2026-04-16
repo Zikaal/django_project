@@ -23,10 +23,7 @@ def notifications_context(request):
         }
 
     # Последние 5 уведомлений пользователя.
-    recent_notifications = list(
-        Notification.objects.filter(recipient=request.user)
-        .order_by("-created_at")[:5]
-    )
+    recent_notifications = list(Notification.objects.filter(recipient=request.user).order_by("-created_at")[:5])
 
     # Отдельно считаем число непрочитанных.
     unread_count = Notification.objects.filter(

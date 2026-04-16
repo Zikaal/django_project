@@ -90,7 +90,9 @@ class MobileObtainAuthTokenView(ObtainAuthToken):
                     "oil_company": {
                         "id": company.id,
                         "name": company.name,
-                    } if company else None,
+                    }
+                    if company
+                    else None,
                 },
             },
             status=status.HTTP_200_OK,
@@ -126,7 +128,9 @@ class ApiMeView(APIView):
                     "oil_company": {
                         "id": company.id,
                         "name": company.name,
-                    } if company else None,
+                    }
+                    if company
+                    else None,
                 },
             },
             status=status.HTTP_200_OK,

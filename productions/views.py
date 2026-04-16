@@ -9,7 +9,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Count, F, Sum, Value, DecimalField, ExpressionWrapper
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum, Value
 from django.db.models.functions import Coalesce
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -63,6 +63,7 @@ logger = logging.getLogger(__name__)
 # - Operator: доступа нет
 # ---------------------------------------------------------------------------
 
+
 class WellListView(AdminOrManagerScopedMixin, ListView):
     """
     Список скважин.
@@ -77,6 +78,7 @@ class WellListView(AdminOrManagerScopedMixin, ListView):
     - поддерживается сортировка;
     - в шаблон передаются данные для фильтров, пагинации и UI-кнопок.
     """
+
     required_permissions = ("productions.view_well",)
     model = Well
     template_name = "productions/well_list.html"
@@ -133,8 +135,7 @@ class WellListView(AdminOrManagerScopedMixin, ListView):
         else:
             user_company = get_user_company(self.request.user)
             context["companies"] = (
-                OilCompany.objects.filter(id=user_company.id)
-                if user_company else OilCompany.objects.none()
+                OilCompany.objects.filter(id=user_company.id) if user_company else OilCompany.objects.none()
             )
 
         context["selected_company"] = self.request.GET.get("company", "")
@@ -160,6 +161,7 @@ class WellCreateView(AdminOrManagerScopedMixin, CreateView):
     Дополнительно:
     - queryset поля oil_company в форме ограничивается через _scope_company_in_form.
     """
+
     required_permissions = ("productions.add_well",)
     model = Well
     form_class = WellForm
@@ -185,6 +187,7 @@ class WellUpdateView(AdminOrManagerScopedMixin, UpdateView):
     - Admin и Manager;
     - Manager работает только со своей компанией.
     """
+
     required_permissions = ("productions.change_well",)
     model = Well
     form_class = WellForm
@@ -209,6 +212,7 @@ class WellDeleteView(AdminOrManagerScopedMixin, DeleteView):
     - Admin и Manager;
     - Manager может удалить только скважину своей компании.
     """
+
     required_permissions = ("productions.delete_well",)
     model = Well
     template_name = "productions/well_confirm_delete.html"
@@ -224,6 +228,7 @@ class WellDeleteView(AdminOrManagerScopedMixin, DeleteView):
 # - Operator: просмотр и создание в своей компании;
 #             редактирование/удаление ограничены доп. бизнес-правилом
 # ---------------------------------------------------------------------------
+
 
 class DailyProductionListView(AnyRoleScopedMixin, ListView):
     """
@@ -242,6 +247,7 @@ class DailyProductionListView(AnyRoleScopedMixin, ListView):
     В контекст также передаются формы импорта/экспорта и наборы id,
     для которых доступны редактирование и удаление.
     """
+
     required_permissions = ("productions.view_dailyproduction",)
     model = DailyProduction
     template_name = "productions/dailyproduction_list.html"
@@ -263,11 +269,7 @@ class DailyProductionListView(AnyRoleScopedMixin, ListView):
         - date_from
         - date_to
         """
-        queryset = (
-            super()
-            .get_queryset()
-            .select_related("well", "well__oil_company")
-        )
+        queryset = super().get_queryset().select_related("well", "well__oil_company")
 
         sort = self.request.GET.get("sort", "-date")
         well_id = self.request.GET.get("well")
@@ -317,9 +319,7 @@ class DailyProductionListView(AnyRoleScopedMixin, ListView):
             if user_company:
                 context["companies"] = OilCompany.objects.filter(id=user_company.id)
                 context["wells"] = (
-                    Well.objects.filter(oil_company=user_company)
-                    .select_related("oil_company")
-                    .order_by("name")
+                    Well.objects.filter(oil_company=user_company).select_related("oil_company").order_by("name")
                 )
             else:
                 context["companies"] = OilCompany.objects.none()
@@ -348,12 +348,10 @@ class DailyProductionListView(AnyRoleScopedMixin, ListView):
         # Предварительно рассчитываем, для каких отчетов доступны edit/delete.
         reports = context["reports"]
         context["editable_report_ids"] = {
-            report.id for report in reports
-            if can_edit_dailyproduction_obj(self.request.user, report)
+            report.id for report in reports if can_edit_dailyproduction_obj(self.request.user, report)
         }
         context["deletable_report_ids"] = {
-            report.id for report in reports
-            if can_delete_dailyproduction_obj(self.request.user, report)
+            report.id for report in reports if can_delete_dailyproduction_obj(self.request.user, report)
         }
 
         return context
@@ -367,6 +365,7 @@ class DailyProductionCreateView(AnyRoleScopedMixin, CreateView):
     - любой пользователь с ролью и permission на добавление;
     - список скважин в форме ограничивается по компании пользователя.
     """
+
     required_permissions = ("productions.add_dailyproduction",)
     model = DailyProduction
     form_class = DailyProductionForm
@@ -392,6 +391,7 @@ class DailyProductionUpdateView(AnyRoleScopedMixin, UpdateView):
     - перед входом в view проверяем object-level правило:
       например, Operator не может редактировать старые рапорты.
     """
+
     required_permissions = ("productions.change_dailyproduction",)
     model = DailyProduction
     form_class = DailyProductionForm
@@ -424,6 +424,7 @@ class DailyProductionDeleteView(AnyRoleScopedMixin, DeleteView):
     Дополнительно:
     - используем object-level проверку, аналогичную редактированию.
     """
+
     required_permissions = ("productions.delete_dailyproduction",)
     model = DailyProduction
     template_name = "productions/dailyproduction_confirm_delete.html"
@@ -444,6 +445,7 @@ class DailyProductionDeleteView(AnyRoleScopedMixin, DeleteView):
 # Импорт / экспорт — только Admin и Manager
 # ---------------------------------------------------------------------------
 
+
 def _enqueue_import_job(job_id: int) -> bool:
     """
     Пытается поставить задачу импорта в очередь Celery.
@@ -458,17 +460,13 @@ def _enqueue_import_job(job_id: int) -> bool:
     """
     try:
         async_result = import_daily_productions.delay(job_id)
-        DailyProductionImportJob.objects.filter(pk=job_id).update(
-            celery_task_id=async_result.id
-        )
+        DailyProductionImportJob.objects.filter(pk=job_id).update(celery_task_id=async_result.id)
         return True
     except Exception:
         logger.exception("Не удалось отправить задачу импорта %s в Celery.", job_id)
         try:
             job = DailyProductionImportJob.objects.get(pk=job_id)
-            job.mark_failed(
-                "Не удалось отправить задачу в очередь. Проверьте Redis, REDIS_URL и Celery worker."
-            )
+            job.mark_failed("Не удалось отправить задачу в очередь. Проверьте Redis, REDIS_URL и Celery worker.")
         except DailyProductionImportJob.DoesNotExist:
             pass
         return False
@@ -482,9 +480,7 @@ def _enqueue_export_job(job_id: int) -> bool:
     """
     try:
         async_result = generate_monthly_production_export.delay(job_id)
-        MonthlyProductionExportJob.objects.filter(pk=job_id).update(
-            celery_task_id=async_result.id
-        )
+        MonthlyProductionExportJob.objects.filter(pk=job_id).update(celery_task_id=async_result.id)
         return True
     except Exception:
         logger.exception("Не удалось отправить задачу экспорта %s в Celery.", job_id)
@@ -508,6 +504,7 @@ class DailyProductionImportView(AdminOrManagerMixin, FormView):
     3. Задача отправляется в Celery.
     4. Пользователь получает flash-message и возвращается к списку рапортов.
     """
+
     required_permissions = ("productions.add_dailyproduction",)
     form_class = DailyProductionImportForm
     success_url = reverse_lazy("dailyproduction_list")
@@ -556,6 +553,7 @@ class MonthlyProductionExportView(AdminOrManagerMixin, FormView):
     - ставим его в Celery;
     - возвращаем пользователя к списку с flash-message.
     """
+
     required_permissions = ("productions.view_dailyproduction",)
     form_class = MonthlyProductionExportForm
     success_url = reverse_lazy("dailyproduction_list")
@@ -634,6 +632,7 @@ class MonthlyProductionExportDownloadView(LoginRequiredMixin, View):
 # Dashboard — только Admin и Manager
 # ---------------------------------------------------------------------------
 
+
 class DashboardView(AdminOrManagerMixin, TemplateView):
     """
     Аналитический dashboard.
@@ -648,6 +647,7 @@ class DashboardView(AdminOrManagerMixin, TemplateView):
     - кэширует результат по комбинации:
       роль + компания + фильтры дат + версия кэша.
     """
+
     required_permissions = (
         "companies.view_oilcompany",
         "productions.view_well",
@@ -714,9 +714,7 @@ class DashboardView(AdminOrManagerMixin, TemplateView):
         - данные для line/bar/pie/doughnut графиков.
         """
         oil_formula = ExpressionWrapper(
-            F("liquid_debit")
-            * (Value(Decimal("1.0")) - F("water_cut") / Value(Decimal("100.0")))
-            * F("oil_density"),
+            F("liquid_debit") * (Value(Decimal("1.0")) - F("water_cut") / Value(Decimal("100.0"))) * F("oil_density"),
             output_field=DecimalField(max_digits=14, decimal_places=4),
         )
 
@@ -741,7 +739,8 @@ class DashboardView(AdminOrManagerMixin, TemplateView):
             reports_qs.values("date")
             .annotate(
                 total_oil=Coalesce(
-                    Sum(oil_formula), 0,
+                    Sum(oil_formula),
+                    0,
                     output_field=DecimalField(max_digits=14, decimal_places=4),
                 )
             )
@@ -755,7 +754,8 @@ class DashboardView(AdminOrManagerMixin, TemplateView):
             reports_qs.values("well__name")
             .annotate(
                 total_oil=Coalesce(
-                    Sum(oil_formula), 0,
+                    Sum(oil_formula),
+                    0,
                     output_field=DecimalField(max_digits=14, decimal_places=4),
                 )
             )
@@ -766,9 +766,7 @@ class DashboardView(AdminOrManagerMixin, TemplateView):
 
         # Распределение скважин по компаниям.
         wells_by_company = (
-            wells_qs.values("oil_company__name")
-            .annotate(wells_count=Count("id"))
-            .order_by("oil_company__name")
+            wells_qs.values("oil_company__name").annotate(wells_count=Count("id")).order_by("oil_company__name")
         )
         pie_labels = [item["oil_company__name"] for item in wells_by_company]
         pie_data = [item["wells_count"] for item in wells_by_company]
@@ -844,8 +842,7 @@ class DashboardView(AdminOrManagerMixin, TemplateView):
             user_company = get_user_company(user)
             company_ids = [str(user_company.id)] if user_company else []
             context["companies"] = (
-                OilCompany.objects.filter(id=user_company.id)
-                if user_company else OilCompany.objects.none()
+                OilCompany.objects.filter(id=user_company.id) if user_company else OilCompany.objects.none()
             )
 
         date_from = self.request.GET.get("date_from", "")
@@ -882,6 +879,7 @@ class DashboardView(AdminOrManagerMixin, TemplateView):
 # Вспомогательные функции
 # ---------------------------------------------------------------------------
 
+
 def _scope_company_in_form(form, user) -> None:
     """
     Ограничивает поле oil_company в форме по компании пользователя.
@@ -913,8 +911,6 @@ def _scope_well_queryset(form, user) -> None:
 
     user_company = get_user_company(user)
     if user_company:
-        form.fields["well"].queryset = (
-            Well.objects.filter(oil_company=user_company).select_related("oil_company")
-        )
+        form.fields["well"].queryset = Well.objects.filter(oil_company=user_company).select_related("oil_company")
     else:
         form.fields["well"].queryset = Well.objects.none()

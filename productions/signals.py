@@ -9,8 +9,8 @@ from django.dispatch import receiver
 from accounts.current_user import get_current_user
 from accounts.models import Profile
 from companies.models import OilCompany
-from .models import DailyProduction, ProductionAuditLog, Well
 
+from .models import DailyProduction, ProductionAuditLog, Well
 
 # Поля DailyProduction, изменения которых нужно писать в аудит.
 AUDITED_FIELDS = (
@@ -169,10 +169,7 @@ def create_daily_production_audit_logs(sender, instance, created, **kwargs):
 
     # 1. Логирование создания нового рапорта.
     if created:
-        message = (
-            f"Пользователь [{actor_display}] создал рапорт "
-            f"по скважине [{well_name}] за дату [{report_date}]"
-        )
+        message = f"Пользователь [{actor_display}] создал рапорт по скважине [{well_name}] за дату [{report_date}]"
 
         def _save_create_log():
             ProductionAuditLog.objects.create(

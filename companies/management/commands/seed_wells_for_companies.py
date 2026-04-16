@@ -51,6 +51,4 @@ class Command(BaseCommand):
                     total_created += 1
 
         self.stdout.write(self.style.SUCCESS(f"Создано новых скважин: {total_created}"))
-        self.stdout.write(
-            self.style.SUCCESS(f"Всего компаний обработано: {companies.count()}")
-        )
+        self.stdout.write(self.style.SUCCESS(f"Всего компаний обработано: {companies.count()}"))

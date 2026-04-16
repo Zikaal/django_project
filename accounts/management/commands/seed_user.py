@@ -81,14 +81,8 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("Пользователь добавлен в группу «Admin»"))
         else:
             self.stdout.write(
-                self.style.WARNING(
-                    "Группа «Admin» не найдена. Запустите: python manage.py create_groups"
-                )
+                self.style.WARNING("Группа «Admin» не найдена. Запустите: python manage.py create_groups")
             )
 
         # Итоговое сообщение об успешном создании пользователя.
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Суперпользователь {username} успешно создан! Пароль: {password}"
-            )
-        )
+        self.stdout.write(self.style.SUCCESS(f"Суперпользователь {username} успешно создан! Пароль: {password}"))

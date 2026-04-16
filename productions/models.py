@@ -191,6 +191,7 @@ class DailyProduction(models.Model):
         """
         Метаданные модели DailyProduction.
         """
+
         constraints = [
             models.UniqueConstraint(
                 fields=["well", "date"],
@@ -222,11 +223,7 @@ class DailyProduction(models.Model):
         - значение можно быстро получить в коде, шаблонах и admin;
         - его не нужно хранить отдельным полем в БД.
         """
-        return (
-            self.liquid_debit
-            * (Decimal("1") - self.water_cut / Decimal("100"))
-            * self.oil_density
-        )
+        return self.liquid_debit * (Decimal("1") - self.water_cut / Decimal("100")) * self.oil_density
 
 
 class ProductionAuditLog(models.Model):
@@ -243,6 +240,7 @@ class ProductionAuditLog(models.Model):
         """
         Поддерживаемые типы действий в журнале аудита.
         """
+
         CREATE = "create", "Создание"
         UPDATE = "update", "Изменение"
         DELETE = "delete", "Удаление"
@@ -350,6 +348,7 @@ class ProductionAuditLog(models.Model):
         """
         Метаданные модели журнала аудита.
         """
+
         verbose_name = "Журнал аудита рапортов"
         verbose_name_plural = "Журнал аудита рапортов"
         ordering = ["-changed_at"]
@@ -369,10 +368,7 @@ class ProductionAuditLog(models.Model):
         """
         field_part = f" / {self.field_name}" if self.field_name else ""
         well_part = self.well_name_snapshot or (self.well.name if self.well else "—")
-        return (
-            f"{self.get_action_display()}{field_part} / "
-            f"{well_part} / {self.changed_at:%Y-%m-%d %H:%M}"
-        )
+        return f"{self.get_action_display()}{field_part} / {well_part} / {self.changed_at:%Y-%m-%d %H:%M}"
 
 
 class DailyProductionImportJob(models.Model):
@@ -390,6 +386,7 @@ class DailyProductionImportJob(models.Model):
         """
         Возможные статусы задачи импорта.
         """
+
         PENDING = "pending", "Ожидает"
         PROCESSING = "processing", "Обрабатывается"
         SUCCESS = "success", "Успешно"
@@ -452,6 +449,7 @@ class DailyProductionImportJob(models.Model):
         """
         Метаданные задачи импорта.
         """
+
         verbose_name = "Задача импорта суточных рапортов"
         verbose_name_plural = "Задачи импорта суточных рапортов"
         ordering = ["-uploaded_at"]
@@ -485,9 +483,7 @@ class DailyProductionImportJob(models.Model):
         # Храним только ограниченное превью ошибок, чтобы JSON не разрастался бесконечно.
         self.errors_preview = errors_preview[:50]
 
-        self.status = (
-            self.Status.COMPLETED_WITH_ERRORS if errors_preview else self.Status.SUCCESS
-        )
+        self.status = self.Status.COMPLETED_WITH_ERRORS if errors_preview else self.Status.SUCCESS
         self.finished_at = timezone.now()
         self.save(
             update_fields=[
@@ -540,6 +536,7 @@ class MonthlyProductionExportJob(models.Model):
         """
         Возможные статусы задачи экспорта.
         """
+
         PENDING = "pending", "Ожидает"
         PROCESSING = "processing", "Обрабатывается"
         SUCCESS = "success", "Успешно"
@@ -596,6 +593,7 @@ class MonthlyProductionExportJob(models.Model):
         """
         Метаданные задачи экспорта.
         """
+
         verbose_name = "Задача экспорта месячного отчёта"
         verbose_name_plural = "Задачи экспорта месячных отчётов"
         ordering = ["-created_at"]

@@ -19,19 +19,16 @@ from django.urls import include, path
 urlpatterns = [
     # Административная панель Django.
     path("admin/", admin.site.urls),
-
     # Web-маршруты приложений проекта.
     path("accounts/", include("accounts.urls")),
     path("productions/", include("productions.urls")),
     path("companies/", include("companies.urls")),
     path("notifications/", include("notifications.urls")),
-
     # Встроенные маршруты Django REST Framework для браузерной авторизации.
     # Обычно используются в browsable API:
     # - login
     # - logout
     path("api-auth/", include("rest_framework.urls")),
-
     # API-маршруты версии v1.
     # auth_urls вынесены отдельно для логина/получения токена.
     path("api/v1/auth/", include("api.auth_urls")),

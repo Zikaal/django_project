@@ -108,9 +108,7 @@ class UserCreateForm(forms.ModelForm):
 
         # Проверяем, что соответствующая группа уже создана в системе.
         if role and not Group.objects.filter(name=role).exists():
-            raise forms.ValidationError(
-                f"Группа «{role}» не найдена. Выполните: python manage.py create_groups"
-            )
+            raise forms.ValidationError(f"Группа «{role}» не найдена. Выполните: python manage.py create_groups")
 
         # Для некоторых ролей компания обязательна.
         if role in ROLES_REQUIRING_COMPANY and not cleaned_data.get("oil_company"):

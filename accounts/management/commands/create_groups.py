@@ -20,17 +20,14 @@ ROLE_PERMISSIONS: dict[str, list[tuple[str, str]]] = {
         ("companies", "change_oilcompany"),
         ("companies", "delete_oilcompany"),
         ("companies", "view_oilcompany"),
-
         ("productions", "add_well"),
         ("productions", "change_well"),
         ("productions", "delete_well"),
         ("productions", "view_well"),
-
         ("productions", "add_dailyproduction"),
         ("productions", "change_dailyproduction"),
         ("productions", "delete_dailyproduction"),
         ("productions", "view_dailyproduction"),
-
         ("accounts", "add_profile"),
         ("accounts", "change_profile"),
         ("accounts", "delete_profile"),
@@ -38,17 +35,14 @@ ROLE_PERMISSIONS: dict[str, list[tuple[str, str]]] = {
     ],
     "Manager": [
         ("companies", "view_oilcompany"),
-
         ("productions", "add_well"),
         ("productions", "change_well"),
         ("productions", "delete_well"),
         ("productions", "view_well"),
-
         ("productions", "add_dailyproduction"),
         ("productions", "change_dailyproduction"),
         ("productions", "delete_dailyproduction"),
         ("productions", "view_dailyproduction"),
-
         ("accounts", "view_profile"),
     ],
     "Operator": [

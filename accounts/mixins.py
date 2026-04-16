@@ -187,9 +187,7 @@ class AnyRoleMixin(PermissionAwareMixin, LoginRequiredMixin):
         # Если у пользователя нет ни одной системной роли,
         # доступ запрещаем с понятным сообщением.
         if not has_any_role(request.user):
-            raise PermissionDenied(
-                "Доступ закрыт. Обратитесь к администратору для назначения роли."
-            )
+            raise PermissionDenied("Доступ закрыт. Обратитесь к администратору для назначения роли.")
 
         # Проверяем дополнительные permissions.
         self.enforce_required_permissions(request.user)
@@ -210,6 +208,7 @@ class AdminOrManagerScopedMixin(AdminOrManagerMixin, CompanyScopedMixin):
     Полезен для ListView/CRUD страниц по данным,
     которые привязаны к нефтяной компании.
     """
+
     pass
 
 
@@ -226,4 +225,5 @@ class AnyRoleScopedMixin(AnyRoleMixin, CompanyScopedMixin):
     Это удобно для рапортов, скважин, производственных записей и других
     company-scoped сущностей.
     """
+
     pass
