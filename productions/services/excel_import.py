@@ -192,3 +192,12 @@ def _import_from_workbook_source(file_source):
         "skipped_count": skipped_count,
         "errors": errors,
     }
+
+def process_daily_productions_excel(file_path):
+    """
+    Публичная функция, которую вызывает Celery-задача из tasks.py.
+
+    Принимает путь к Excel-файлу и передает его
+    во внутренний обработчик импорта.
+    """
+    return _import_from_workbook_source(file_path)
