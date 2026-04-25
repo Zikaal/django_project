@@ -29,6 +29,7 @@ class DailyProductionForm(forms.ModelForm):
         - HTML-виджеты;
         - пользовательские сообщения об ошибках.
         """
+
         model = DailyProduction
         fields = [
             "well",
@@ -101,9 +102,7 @@ class DailyProductionForm(forms.ModelForm):
                 qs = qs.exclude(pk=self.instance.pk)
 
             if qs.exists():
-                raise forms.ValidationError(
-                    "Для этой скважины уже есть запись на эту дату."
-                )
+                raise forms.ValidationError("Для этой скважины уже есть запись на эту дату.")
 
         return cleaned_data
 
@@ -126,6 +125,7 @@ class WellForm(forms.ModelForm):
         """
         Метаданные формы для модели Well.
         """
+
         model = Well
         fields = [
             "name",

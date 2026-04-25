@@ -38,6 +38,7 @@ class RegisterView(CreateView):
     - здесь нет ограничений по ролям, это именно открытая регистрация;
     - используется встроенный UserCreationForm, поэтому логика простая и стандартная.
     """
+
     model = User
     form_class = UserCreationForm
     template_name = "registration/register.html"
@@ -78,11 +79,7 @@ class UserListView(AdminRequiredMixin, ListView):
         - sort: способ сортировки;
         - company: фильтр по id нефтяной компании.
         """
-        queryset = (
-            User.objects
-            .select_related("profile", "profile__oil_company")
-            .prefetch_related("groups")
-        )
+        queryset = User.objects.select_related("profile", "profile__oil_company").prefetch_related("groups")
 
         # Параметр сортировки. По умолчанию сортируем по username.
         sort = self.request.GET.get("sort", "username")
@@ -177,6 +174,7 @@ def user_update_view(request, pk):
     if not request.user.is_authenticated:
         from django.conf import settings
         from django.shortcuts import redirect as _redirect
+
         return _redirect(settings.LOGIN_URL)
 
     # Дополнительная проверка роли.
@@ -249,6 +247,7 @@ class ProfileDetailView(LoginRequiredMixin, TemplateView):
     - это TemplateView, потому что здесь нет сложной серверной логики;
     - шаблон сам может брать данные через request.user и request.user.profile.
     """
+
     template_name = "accounts/profile.html"
 
 
@@ -270,6 +269,7 @@ def profile_update_view(request):
     # Если пользователь не авторизован — отправляем на login.
     if not request.user.is_authenticated:
         from django.conf import settings
+
         return redirect(settings.LOGIN_URL)
 
     # Работаем только с текущим пользователем.

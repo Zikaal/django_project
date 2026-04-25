@@ -55,8 +55,4 @@ class Command(BaseCommand):
 
                 current_date += timedelta(days=1)
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Готово. Создано записей DailyProduction: {total_created}"
-            )
-        )
+        self.stdout.write(self.style.SUCCESS(f"Готово. Создано записей DailyProduction: {total_created}"))

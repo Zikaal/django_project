@@ -28,9 +28,7 @@ def build_monthly_production_report(year: int, month: int):
     # Формула чистой нефти на уровне ORM:
     # liquid_debit * (1 - water_cut / 100) * oil_density
     oil_formula = ExpressionWrapper(
-        F("liquid_debit")
-        * (Value(Decimal("1.0")) - F("water_cut") / Value(Decimal("100.0")))
-        * F("oil_density"),
+        F("liquid_debit") * (Value(Decimal("1.0")) - F("water_cut") / Value(Decimal("100.0"))) * F("oil_density"),
         output_field=DecimalField(max_digits=14, decimal_places=4),
     )
 

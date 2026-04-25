@@ -31,11 +31,7 @@ class HasAnyBusinessRole(BasePermission):
         - пользователь имеет одну из допустимых ролей.
         """
         user = request.user
-        return (
-            user
-            and user.is_authenticated
-            and (is_admin(user) or is_manager(user) or is_operator(user))
-        )
+        return user and user.is_authenticated and (is_admin(user) or is_manager(user) or is_operator(user))
 
 
 class CanCreateDailyProduction(BasePermission):
@@ -62,11 +58,7 @@ class CanCreateDailyProduction(BasePermission):
         Это permission уровня endpoint, а не объекта.
         """
         user = request.user
-        return (
-            user
-            and user.is_authenticated
-            and (is_admin(user) or is_manager(user) or is_operator(user))
-        )
+        return user and user.is_authenticated and (is_admin(user) or is_manager(user) or is_operator(user))
 
 
 class CanAccessOwnCompanyData(BasePermission):

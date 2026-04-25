@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from accounts.utils import get_user_company, is_admin, is_manager, is_operator
+
 from .models import DailyProduction, Well
 
 
@@ -116,9 +117,7 @@ class DailyProductionCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Пользователь не привязан к компании.")
 
         if well.oil_company_id != user_company.id:
-            raise serializers.ValidationError(
-                "Нельзя отправить рапорт по скважине чужой компании."
-            )
+            raise serializers.ValidationError("Нельзя отправить рапорт по скважине чужой компании.")
 
         return well
 
@@ -127,9 +126,7 @@ class DailyProductionCreateSerializer(serializers.ModelSerializer):
         Обводненность должна быть в диапазоне 0..100.
         """
         if value < 0 or value > 100:
-            raise serializers.ValidationError(
-                "Обводненность должна быть в диапазоне от 0 до 100."
-            )
+            raise serializers.ValidationError("Обводненность должна быть в диапазоне от 0 до 100.")
         return value
 
     def validate_work_time(self, value):
@@ -172,18 +169,14 @@ class DailyProductionCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Требуется авторизация.")
 
         if not (is_admin(user) or is_manager(user) or is_operator(user)):
-            raise serializers.ValidationError(
-                {"detail": "У пользователя нет роли для отправки рапорта."}
-            )
+            raise serializers.ValidationError({"detail": "У пользователя нет роли для отправки рапорта."})
 
         well = attrs.get("well")
         date = attrs.get("date")
 
         if well and date:
             if DailyProduction.objects.filter(well=well, date=date).exists():
-                raise serializers.ValidationError(
-                    {"date": "Для этой скважины уже есть запись на эту дату."}
-                )
+                raise serializers.ValidationError({"date": "Для этой скважины уже есть запись на эту дату."})
 
         return attrs
 

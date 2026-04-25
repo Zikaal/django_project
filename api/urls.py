@@ -10,10 +10,8 @@ from .views import ApiHealthView, ApiMeView, DailyProductionCreateApiView
 urlpatterns = [
     # Проверка, что API-сервис доступен и работает.
     path("health/", ApiHealthView.as_view(), name="api_health"),
-
     # Возвращает данные текущего авторизованного пользователя.
     path("me/", ApiMeView.as_view(), name="api_me"),
-
     # Создание суточного производственного рапорта.
     path(
         "reports/daily/",

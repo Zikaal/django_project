@@ -27,6 +27,7 @@ class Notification(models.Model):
         - визуального оформления в UI;
         - смыслового разделения уведомлений по важности.
         """
+
         INFO = "info", "Информация"
         SUCCESS = "success", "Успех"
         WARNING = "warning", "Предупреждение"
@@ -89,6 +90,7 @@ class Notification(models.Model):
         """
         Метаданные модели.
         """
+
         verbose_name = "Уведомление"
         verbose_name_plural = "Уведомления"
         ordering = ["-created_at"]

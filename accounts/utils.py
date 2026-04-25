@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import timedelta
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING
+
 from django.utils import timezone
 
 # TYPE_CHECKING нужен, чтобы использовать типы только для подсказок/линтеров,
 # не создавая циклические импорты во время выполнения.
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser
+
     from companies.models import OilCompany
 
 
@@ -21,7 +24,7 @@ ROLE_OPERATOR = "Operator"
 ROLE_NAMES = {ROLE_ADMIN, ROLE_MANAGER, ROLE_OPERATOR}
 
 
-def _is_authenticated(user: "AbstractBaseUser | None") -> bool:
+def _is_authenticated(user: AbstractBaseUser | None) -> bool:
     """
     Безопасно проверяет, авторизован ли пользователь.
 
@@ -33,7 +36,7 @@ def _is_authenticated(user: "AbstractBaseUser | None") -> bool:
     return bool(user and getattr(user, "is_authenticated", False))
 
 
-def _cached_role_names(user: "AbstractBaseUser") -> set[str]:
+def _cached_role_names(user: AbstractBaseUser) -> set[str]:
     """
     Возвращает множество названий групп пользователя с кэшированием на объекте user.
 
@@ -50,7 +53,7 @@ def _cached_role_names(user: "AbstractBaseUser") -> set[str]:
     return user._cached_role_names
 
 
-def _cached_permissions(user: "AbstractBaseUser") -> set[str]:
+def _cached_permissions(user: AbstractBaseUser) -> set[str]:
     """
     Возвращает кэшированный набор всех permission-кодов пользователя.
 
@@ -67,7 +70,7 @@ def _cached_permissions(user: "AbstractBaseUser") -> set[str]:
     return user._cached_permissions
 
 
-def has_all_permissions(user: "AbstractBaseUser", permissions: Iterable[str] | None) -> bool:
+def has_all_permissions(user: AbstractBaseUser, permissions: Iterable[str] | None) -> bool:
     """
     Проверяет, есть ли у пользователя ВСЕ указанные permissions.
 
@@ -93,7 +96,7 @@ def has_all_permissions(user: "AbstractBaseUser", permissions: Iterable[str] | N
     return all(perm in cached for perm in permissions)
 
 
-def has_any_role(user: "AbstractBaseUser") -> bool:
+def has_any_role(user: AbstractBaseUser) -> bool:
     """
     Проверяет, есть ли у пользователя хотя бы одна из системных ролей:
     Admin / Manager / Operator.
@@ -108,7 +111,7 @@ def has_any_role(user: "AbstractBaseUser") -> bool:
     return bool(_cached_role_names(user) & ROLE_NAMES)
 
 
-def is_admin(user: "AbstractBaseUser") -> bool:
+def is_admin(user: AbstractBaseUser) -> bool:
     """
     Проверяет, является ли пользователь администратором.
 
@@ -123,7 +126,7 @@ def is_admin(user: "AbstractBaseUser") -> bool:
     return ROLE_ADMIN in _cached_role_names(user)
 
 
-def is_manager(user: "AbstractBaseUser") -> bool:
+def is_manager(user: AbstractBaseUser) -> bool:
     """
     Проверяет, состоит ли пользователь в группе Manager.
     """
@@ -132,7 +135,7 @@ def is_manager(user: "AbstractBaseUser") -> bool:
     return ROLE_MANAGER in _cached_role_names(user)
 
 
-def is_operator(user: "AbstractBaseUser") -> bool:
+def is_operator(user: AbstractBaseUser) -> bool:
     """
     Проверяет, состоит ли пользователь в группе Operator.
     """
@@ -141,7 +144,7 @@ def is_operator(user: "AbstractBaseUser") -> bool:
     return ROLE_OPERATOR in _cached_role_names(user)
 
 
-def get_user_role(user: "AbstractBaseUser") -> str:
+def get_user_role(user: AbstractBaseUser) -> str:
     """
     Возвращает основную роль пользователя в виде строки.
 
@@ -162,7 +165,7 @@ def get_user_role(user: "AbstractBaseUser") -> str:
     return "Unknown"
 
 
-def get_user_company(user: "AbstractBaseUser") -> "OilCompany | None":
+def get_user_company(user: AbstractBaseUser) -> OilCompany | None:
     """
     Возвращает компанию пользователя из его профиля.
 
@@ -197,7 +200,7 @@ def get_user_company(user: "AbstractBaseUser") -> "OilCompany | None":
     return user._cached_oil_company
 
 
-def get_user_company_id(user: "AbstractBaseUser") -> int | None:
+def get_user_company_id(user: AbstractBaseUser) -> int | None:
     """
     Возвращает id компании пользователя или None.
 
@@ -208,7 +211,7 @@ def get_user_company_id(user: "AbstractBaseUser") -> int | None:
     return company.id if company else None
 
 
-def can_manage_users(user: "AbstractBaseUser") -> bool:
+def can_manage_users(user: AbstractBaseUser) -> bool:
     """
     Может ли пользователь управлять другими пользователями.
 
@@ -218,7 +221,7 @@ def can_manage_users(user: "AbstractBaseUser") -> bool:
     return is_admin(user)
 
 
-def can_view_companies(user: "AbstractBaseUser") -> bool:
+def can_view_companies(user: AbstractBaseUser) -> bool:
     """
     Может ли пользователь просматривать список/детали компаний.
 
@@ -226,12 +229,10 @@ def can_view_companies(user: "AbstractBaseUser") -> bool:
     - роль Admin или Manager;
     - наличие permission 'companies.view_oilcompany'.
     """
-    return (is_admin(user) or is_manager(user)) and has_all_permissions(
-        user, ["companies.view_oilcompany"]
-    )
+    return (is_admin(user) or is_manager(user)) and has_all_permissions(user, ["companies.view_oilcompany"])
 
 
-def can_manage_companies(user: "AbstractBaseUser") -> bool:
+def can_manage_companies(user: AbstractBaseUser) -> bool:
     """
     Может ли пользователь полностью управлять компаниями.
 
@@ -250,7 +251,7 @@ def can_manage_companies(user: "AbstractBaseUser") -> bool:
     )
 
 
-def can_view_wells(user: "AbstractBaseUser") -> bool:
+def can_view_wells(user: AbstractBaseUser) -> bool:
     """
     Может ли пользователь просматривать скважины.
 
@@ -258,12 +259,10 @@ def can_view_wells(user: "AbstractBaseUser") -> bool:
     - Admin или Manager;
     - permission 'productions.view_well'.
     """
-    return (is_admin(user) or is_manager(user)) and has_all_permissions(
-        user, ["productions.view_well"]
-    )
+    return (is_admin(user) or is_manager(user)) and has_all_permissions(user, ["productions.view_well"])
 
 
-def can_manage_wells(user: "AbstractBaseUser") -> bool:
+def can_manage_wells(user: AbstractBaseUser) -> bool:
     """
     Может ли пользователь создавать/редактировать/удалять скважины.
 
@@ -282,7 +281,7 @@ def can_manage_wells(user: "AbstractBaseUser") -> bool:
     )
 
 
-def can_view_reports(user: "AbstractBaseUser") -> bool:
+def can_view_reports(user: AbstractBaseUser) -> bool:
     """
     Может ли пользователь просматривать рапорты добычи.
 
@@ -290,12 +289,10 @@ def can_view_reports(user: "AbstractBaseUser") -> bool:
     - у пользователя должна быть хотя бы одна системная роль;
     - permission 'productions.view_dailyproduction'.
     """
-    return has_any_role(user) and has_all_permissions(
-        user, ["productions.view_dailyproduction"]
-    )
+    return has_any_role(user) and has_all_permissions(user, ["productions.view_dailyproduction"])
 
 
-def can_create_reports(user: "AbstractBaseUser") -> bool:
+def can_create_reports(user: AbstractBaseUser) -> bool:
     """
     Может ли пользователь создавать рапорты добычи.
 
@@ -303,12 +300,10 @@ def can_create_reports(user: "AbstractBaseUser") -> bool:
     - любая системная роль;
     - permission 'productions.add_dailyproduction'.
     """
-    return has_any_role(user) and has_all_permissions(
-        user, ["productions.add_dailyproduction"]
-    )
+    return has_any_role(user) and has_all_permissions(user, ["productions.add_dailyproduction"])
 
 
-def can_edit_reports(user: "AbstractBaseUser") -> bool:
+def can_edit_reports(user: AbstractBaseUser) -> bool:
     """
     Может ли пользователь редактировать рапорты добычи.
 
@@ -316,12 +311,10 @@ def can_edit_reports(user: "AbstractBaseUser") -> bool:
     - любая системная роль;
     - permission 'productions.change_dailyproduction'.
     """
-    return has_any_role(user) and has_all_permissions(
-        user, ["productions.change_dailyproduction"]
-    )
+    return has_any_role(user) and has_all_permissions(user, ["productions.change_dailyproduction"])
 
 
-def can_delete_reports(user: "AbstractBaseUser") -> bool:
+def can_delete_reports(user: AbstractBaseUser) -> bool:
     """
     Может ли пользователь удалять рапорты добычи.
 
@@ -329,12 +322,10 @@ def can_delete_reports(user: "AbstractBaseUser") -> bool:
     - любая системная роль;
     - permission 'productions.delete_dailyproduction'.
     """
-    return has_any_role(user) and has_all_permissions(
-        user, ["productions.delete_dailyproduction"]
-    )
+    return has_any_role(user) and has_all_permissions(user, ["productions.delete_dailyproduction"])
 
 
-def can_import_export(user: "AbstractBaseUser") -> bool:
+def can_import_export(user: AbstractBaseUser) -> bool:
     """
     Может ли пользователь выполнять импорт/экспорт данных.
 
@@ -346,12 +337,10 @@ def can_import_export(user: "AbstractBaseUser") -> bool:
     - если позже понадобится более строгая модель безопасности,
       можно завести отдельные permissions для import/export.
     """
-    return (is_admin(user) or is_manager(user)) and has_all_permissions(
-        user, ["productions.view_dailyproduction"]
-    )
+    return (is_admin(user) or is_manager(user)) and has_all_permissions(user, ["productions.view_dailyproduction"])
 
 
-def can_access_dashboard(user: "AbstractBaseUser") -> bool:
+def can_access_dashboard(user: AbstractBaseUser) -> bool:
     """
     Может ли пользователь заходить в dashboard.
 

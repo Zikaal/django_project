@@ -11,11 +11,11 @@ from django.db import transaction
 
 from notifications.models import Notification
 from notifications.services import create_notification
+from productions.signals import bump_dashboard_cache_version, bump_export_cache_version
+
 from .models import DailyProductionImportJob, MonthlyProductionExportJob
 from .services.excel_export import build_monthly_production_report
 from .services.excel_import import process_daily_productions_excel
-
-from productions.signals import bump_dashboard_cache_version, bump_export_cache_version
 
 
 def _get_export_cache_version():
@@ -141,10 +141,7 @@ def _create_import_notification(job: DailyProductionImportJob):
         create_notification(
             recipient=job.uploaded_by,
             title="Импорт завершён успешно",
-            message=(
-                f"Файл '{filename}' успешно обработан. "
-                f"Создано записей: {job.created_count}."
-            ),
+            message=(f"Файл '{filename}' успешно обработан. Создано записей: {job.created_count}."),
             level=Notification.Level.SUCCESS,
             related_import=job,
         )
@@ -165,10 +162,7 @@ def _create_import_notification(job: DailyProductionImportJob):
         create_notification(
             recipient=job.uploaded_by,
             title="Ошибка фонового импорта",
-            message=(
-                f"Файл '{filename}' не удалось обработать. "
-                f"Причина: {job.fatal_error or 'Неизвестная ошибка'}"
-            ),
+            message=(f"Файл '{filename}' не удалось обработать. Причина: {job.fatal_error or 'Неизвестная ошибка'}"),
             level=Notification.Level.ERROR,
             related_import=job,
         )
@@ -227,8 +221,7 @@ def _create_export_notification(job: MonthlyProductionExportJob):
             recipient=job.requested_by,
             title="Месячный отчёт готов",
             message=(
-                f"Отчёт за {job.period_label} подготовлен. "
-                f"Источник: {source_label}. Нажмите скачать в уведомлении."
+                f"Отчёт за {job.period_label} подготовлен. Источник: {source_label}. Нажмите скачать в уведомлении."
             ),
             level=Notification.Level.SUCCESS,
             related_export=job,

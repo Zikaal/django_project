@@ -3,10 +3,10 @@ from django import template
 from accounts.utils import (
     can_access_dashboard,
     can_create_reports,
-    can_delete_reports,
     can_delete_dailyproduction_obj,
-    can_edit_reports,
+    can_delete_reports,
     can_edit_dailyproduction_obj,
+    can_edit_reports,
     can_import_export,
     can_manage_companies,
     can_manage_users,

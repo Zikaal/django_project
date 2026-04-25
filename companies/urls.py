@@ -16,21 +16,18 @@ urlpatterns = [
         OilCompanyListView.as_view(),
         name="company_list",
     ),
-
     # Создание новой компании.
     path(
         "create/",
         OilCompanyCreateView.as_view(),
         name="company_create",
     ),
-
     # Редактирование существующей компании по pk.
     path(
         "<int:pk>/edit/",
         OilCompanyUpdateView.as_view(),
         name="company_update",
     ),
-
     # Удаление компании по pk.
     path(
         "<int:pk>/delete/",
