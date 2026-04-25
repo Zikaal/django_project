@@ -21,4 +21,7 @@ class ProfileSignalTests(TestCase):
         )
 
         self.assertTrue(Profile.objects.filter(user=user).exists())
-        self.assertEqual(user.profile.oil_company, self.company)
+        self.assertIsNone(user.profile.oil_company)
+        self.assertEqual(user.profile.department, "")
+        self.assertEqual(user.profile.phone_number, "")
+        self.assertEqual(user.profile.bio, "")
